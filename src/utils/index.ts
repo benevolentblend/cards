@@ -1,3 +1,5 @@
+import { Card, CardSuit, CardName } from "../../game/Cards";
+
 export const stringToColor = (value: string) => {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -5,4 +7,23 @@ export const stringToColor = (value: string) => {
   }
 
   return `hsl(${hash % 360}, 85%, 35%)`;
+};
+
+export const getCardValues = (card: Card) => {
+  const [suit, name] = card.split("-") as [CardSuit, CardName];
+
+  return { suit, name };
+};
+
+export const suitToColor = (suit: CardSuit) => {
+  switch (suit) {
+    case "R":
+      return "bg-red-700";
+    case "B":
+      return "bg-blue-700";
+    case "G":
+      return "bg-green-700";
+    case "Y":
+      return "bg-yellow-300";
+  }
 };

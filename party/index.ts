@@ -1,19 +1,14 @@
 import type * as Party from "partykit/server";
 
 import { gameUpdater, initialGame, Action, ServerAction } from "../game/logic";
-import { GameState } from "../game/logic";
-
-interface ServerMessage {
-  state: GameState;
-}
+import { ServerGameState, ClientGameState } from "../game/logic";
 
 export default class Server implements Party.Server {
-  private gameState: GameState;
+  private gameState: ServerGameState;
 
   constructor(readonly party: Party.Party) {
     this.gameState = initialGame();
     console.log("Room created:", party.id);
-    console.log("Room target", this.gameState.target);
     // party.storage.put;
   }
   onConnect(connection: Party.Connection, ctx: Party.ConnectionContext) {
@@ -25,6 +20,7 @@ export default class Server implements Party.Server {
       { type: "UserEntered", user: { id: connection.id } },
       this.gameState
     );
+
     this.party.broadcast(JSON.stringify(this.gameState));
   }
   onClose(connection: Party.Connection) {

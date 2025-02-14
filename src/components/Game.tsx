@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useGameRoom } from "@/hooks/useGameRoom";
-import { stringToColor } from "@/utils";
+import { getCardValues, suitToColor } from "@/utils";
+import { Card } from "../../game/Cards";
 
 interface GameProps {
   username: string;
@@ -25,69 +26,71 @@ const Game = ({ username, roomId }: GameProps) => {
     );
   }
 
-  const handleGuess = (event: React.SyntheticEvent) => {
-    event.preventDefault();
+  const drawCard = () => {
     // Dispatch allows you to send an action!
     // Modify /game/logic.ts to change what actions you can send
-    dispatch({ type: "guess", guess: guess });
+    dispatch({ type: "draw" });
+  };
+
+  const discardCard = (card: Card) => {
+    // Dispatch allows you to send an action!
+    // Modify /game/logic.ts to change what actions you can send
+    dispatch({ type: "discard", card });
   };
 
   return (
     <>
-      <h1 className="text-2xl border-b border-yellow-400 text-center relative">
-        🎲 Guess the number!
-      </h1>
-      <section>
-        <form
-          className="flex flex-col gap-4 py-6 items-center"
-          onSubmit={handleGuess}
+      <div className="">
+        {gameState.users.map((user) => (
+          <div key={user.id}>
+            {user.id}&apos;s cards
+            <div className="flex flex-wrap">
+              {user.cards.map((card) => {
+                const { suit, name } = getCardValues(card);
+
+                return (
+                  <div
+                    className={`grid justify-center content-center p-1 rounded-md w-24 h-32 border border-solid ${suitToColor(
+                      suit
+                    )}`}
+                    key={card}
+                  >
+                    <div className="rounded-full text-center align-middle bg-white w-20 h-20 p-6 text-lg">
+                      {name}
+                    </div>
+                    <button
+                      className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+                      onClick={() => discardCard(card)}
+                    >
+                      Discard
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <button
+          className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+          onClick={drawCard}
         >
-          <label
-            htmlFor="guess"
-            className="text-7xl font-bold text-stone-50 bg-black rounded p-2 text-"
-          >
-            {guess}
-          </label>
-          <input
-            type="range"
-            name="guess"
-            id="guess"
-            className="opacity-70 hover:opacity-100 accent-yellow-400"
-            onChange={(e) => setGuess(Number(e.currentTarget.value))}
-            value={guess}
-          />
-          <button className="rounded border p-5 bg-yellow-400 group text-black shadow hover:animate-wiggle">
-            Guess!
-          </button>
-        </form>
+          Draw Card
+        </button>
+      </div>
+      <div className=" bg-yellow-100 flex flex-col p-4 rounded text-sm">
+        {gameState.log.map((logEntry, i) => (
+          <p key={logEntry.dt} className="animate-appear text-black">
+            {logEntry.message}
+          </p>
+        ))}
+      </div>
 
-        <div className="border-t border-yellow-400 py-2" />
-
-        <div className=" bg-yellow-100 flex flex-col p-4 rounded text-sm">
-          {gameState.log.map((logEntry, i) => (
-            <p key={logEntry.dt} className="animate-appear text-black">
-              {logEntry.message}
-            </p>
-          ))}
-        </div>
-
-        <h2 className="text-lg">
-          Players in room <span className="font-bold">{roomId}</span>
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {gameState.users.map((user) => {
-            return (
-              <p
-                className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-white"
-                style={{ backgroundColor: stringToColor(user.id + roomId) }}
-                key={user.id}
-              >
-                {user.id}
-              </p>
-            );
-          })}
-        </div>
-      </section>
+      <h2 className="text-lg">
+        Players in room <span className="font-bold">{roomId}</span>
+      </h2>
     </>
   );
 };

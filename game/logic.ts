@@ -1,5 +1,11 @@
+import { Connection } from "partykit/server";
+import { CardCollection, Deck, Hand, Card } from "./Cards";
+
 // util for easy adding logs
-const addLog = (message: string, logs: GameState["log"]): GameState["log"] => {
+const addLog = (
+  message: string,
+  logs: BaseGameState["log"]
+): BaseGameState["log"] => {
   return [{ dt: new Date().getTime(), message: message }, ...logs].slice(
     0,
     MAX_LOG_SIZE
@@ -11,9 +17,16 @@ export interface User {
   id: string;
 }
 
+export interface UserWithCards extends User {
+  cards: Card[];
+}
+
+export interface UserWithCardCount extends User {
+  cardCount: number;
+}
+
 // Do not change this! Every game has a list of users and log of actions
 interface BaseGameState {
-  users: User[];
   log: {
     dt: number;
     message: string;
@@ -28,70 +41,113 @@ export type ServerAction = WithUser<DefaultAction> | WithUser<GameAction>;
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
+const HAND_SIZE = 7;
 
 type WithUser<T> = T & { user: User };
 
 export type DefaultAction = { type: "UserEntered" } | { type: "UserExit" };
 
 // This interface holds all the information about your game
-export interface GameState extends BaseGameState {
-  target: number;
+
+export interface ServerGameState extends BaseGameState {
+  users: UserWithCards[];
+  deck: Card[];
+  discardPile: Card[];
+}
+
+export interface ClientGameState extends BaseGameState {
+  users: UserWithCardCount[];
+  lastDiscarded: Card;
 }
 
 // This is how a fresh new game starts out, it's a function so you can make it dynamic!
-// In the case of the guesser game we start out with a random target
-export const initialGame = () => ({
-  users: [],
-  target: Math.floor(Math.random() * 100),
-  log: addLog("Game Created!", []),
-});
+export const initialGame = (): ServerGameState => {
+  const deck = Deck.Build({ duplicates: 2 });
+  const discardPile = new CardCollection([]);
+  deck.shuffle();
+  discardPile.addCards([deck.takeCard()]);
+  return {
+    users: [],
+    deck: deck.getCards(),
+    discardPile: discardPile.getCards(),
+    log: addLog("Game Created!", []),
+  };
+};
 
 // Here are all the actions we can dispatch for a user
-type GameAction = { type: "guess"; guess: number };
+type GameAction = { type: "draw" } | { type: "discard"; card: Card };
 
 export const gameUpdater = (
   action: ServerAction,
-  state: GameState
-): GameState => {
-  // This switch should have a case for every action type you add.
+  state: ServerGameState
+): ServerGameState => {
+  const deck = new Deck(state.deck);
 
-  // "UserEntered" & "UserExit" are defined by default
-
-  // Every action has a user field that represent the user who dispatched the action,
-  // you don't need to add this yourself
   switch (action.type) {
     case "UserEntered":
+      const newUserHand = deck.deal(HAND_SIZE);
+
       return {
         ...state,
-        users: [...state.users, action.user],
+        users: [
+          ...state.users,
+          { ...action.user, cards: newUserHand.getCards() },
+        ],
         log: addLog(`user ${action.user.id} joined 🎉`, state.log),
       };
 
     case "UserExit":
+      // Add users cards back to the deck
+      state.users.forEach((user) => {
+        if (user.id === action.user.id) {
+          deck.addCards(user.cards);
+        }
+      });
       return {
         ...state,
+        deck: deck.getCards(),
         users: state.users.filter((user) => user.id !== action.user.id),
         log: addLog(`user ${action.user.id} left 😢`, state.log),
       };
 
-    case "guess":
-      if (action.guess === state.target) {
+    case "draw":
+      if (deck.isEmpty()) {
         return {
           ...state,
-          target: Math.floor(Math.random() * 100),
-          log: addLog(
-            `user ${action.user.id} guessed ${action.guess} and won! 👑`,
-            state.log
-          ),
-        };
-      } else {
-        return {
-          ...state,
-          log: addLog(
-            `user ${action.user.id} guessed ${action.guess}`,
-            state.log
-          ),
+          log: addLog(`No more cards!`, state.log),
         };
       }
+      const drawnCard = deck.drawCard();
+      return {
+        ...state,
+        deck: deck.getCards(),
+        users: state.users.map((user) =>
+          user.id !== action.user.id
+            ? user
+            : { ...user, cards: [...user.cards, drawnCard] }
+        ),
+        log: addLog(`user ${action.user.id} drew a card!`, state.log),
+      };
+
+    case "discard":
+      const discardPile = new CardCollection(state.discardPile);
+      return {
+        ...state,
+        deck: deck.getCards(),
+        users: state.users.map((user) => {
+          if (user.id === action.user.id) {
+            const userHand = new Hand(user.cards);
+
+            if (userHand.hasCard(action.card)) {
+              userHand.playCard(action.card);
+              discardPile.addCards([action.card]);
+            }
+
+            return { ...user, cards: [...userHand.getCards()] };
+          }
+
+          return user;
+        }),
+      };
   }
 };
