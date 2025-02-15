@@ -1,15 +1,3 @@
-// enum CardName {
-//   One,
-//   Two,
-//   Three,
-//   Four,
-//   Five,
-//   Six,
-//   Seven,
-//   Eight,
-//   Nine,
-// }
-
 export type CardName = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
 export type CardSuit = "R" | "B" | "G" | "Y";
@@ -113,21 +101,22 @@ export class CardCollection implements ICardCollection {
     return this.getCount() === 0;
   }
 
-  public takeCard(): Card {
+  public takeCard(front = true): Card {
     if (!this.isEmpty()) {
       return this.getCards().shift() as Card;
     }
     throw new Error("No cards remaining in pile");
   }
 
-  public takeCards(amount: number): Card[] {
+  public takeCards(amount: number, front = false): Card[] {
     if (!amount || amount < 1) {
       amount = this.getCount();
     }
     // tslint:disable-next-line:prefer-const
     let pulledCards: Card[] = [];
     while (!this.isEmpty() && pulledCards.length < amount) {
-      pulledCards.push(this.getCards().shift() as Card);
+      if (front) pulledCards.push(this.getCards().shift() as Card);
+      else pulledCards.push(this.getCards().pop() as Card);
     }
     return pulledCards;
   }
@@ -183,7 +172,7 @@ export class Deck extends CardCollection implements IDeck {
 
   public deal(size: number) {
     const hand = new Hand();
-    hand.addCards(this.takeCards(size));
+    hand.addCards(this.takeCards(size, false));
     return hand;
   }
 }
