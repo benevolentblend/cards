@@ -1,4 +1,3 @@
-import { Connection } from "partykit/server";
 import { CardCollection, Deck, Hand, Card } from "./Cards";
 
 // util for easy adding logs
@@ -38,6 +37,12 @@ export type Action = DefaultAction | GameAction;
 
 // Do not change!
 export type ServerAction = WithUser<DefaultAction> | WithUser<GameAction>;
+
+export type ClientAction =
+  | { type: "gameState"; payload: ClientGameState }
+  | { type: "discard"; payload: string }
+  | { type: "hand"; payload: Card[] }
+  | { type: "draw"; payload: Card };
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
@@ -133,7 +138,6 @@ export const gameUpdater = (
       const discardPile = new CardCollection(state.discardPile);
       return {
         ...state,
-        deck: deck.getCards(),
         users: state.users.map((user) => {
           if (user.id === action.user.id) {
             const userHand = new Hand(user.cards);
@@ -150,4 +154,17 @@ export const gameUpdater = (
         }),
       };
   }
+};
+
+export const convertServerToClientState = (
+  gameState: ServerGameState
+): ClientGameState => {
+  const { log, users, discardPile } = gameState;
+  return {
+    lastDiscarded: discardPile[0],
+    users: users.map(({ cards, id }) => {
+      return { id, cardCount: cards.length };
+    }),
+    log,
+  };
 };

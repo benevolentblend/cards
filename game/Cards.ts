@@ -1,3 +1,7 @@
+// Based off of https://github.com/mitch-b/typedeck
+
+import { getCardValues } from "@/utils";
+
 export type CardName = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
 export type CardSuit = "R" | "B" | "G" | "Y";
@@ -30,8 +34,8 @@ interface IDeck extends ICardCollection {
 }
 
 function cardsAreEquivalent(a: Card, b: Card) {
-  const [aCardSuit, aCardName] = a.split("-");
-  const [bCardSuit, bCardName] = b.split("-");
+  const { suit: aCardSuit, name: aCardName } = getCardValues(a);
+  const { suit: bCardSuit, name: bCardName } = getCardValues(b);
   return aCardSuit === bCardSuit && aCardName === bCardName;
 }
 

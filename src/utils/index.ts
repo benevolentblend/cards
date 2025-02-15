@@ -14,16 +14,3 @@ export const getCardValues = (card: Card) => {
 
   return { suit, name };
 };
-
-export const suitToColor = (suit: CardSuit) => {
-  switch (suit) {
-    case "R":
-      return "bg-red-700";
-    case "B":
-      return "bg-blue-700";
-    case "G":
-      return "bg-green-700";
-    case "Y":
-      return "bg-yellow-300";
-  }
-};

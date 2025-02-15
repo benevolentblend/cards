@@ -1,7 +1,13 @@
 import type * as Party from "partykit/server";
 
-import { gameUpdater, initialGame, Action, ServerAction } from "../game/logic";
-import { ServerGameState, ClientGameState } from "../game/logic";
+import {
+  gameUpdater,
+  initialGame,
+  Action,
+  ServerAction,
+  convertServerToClientState,
+} from "../game/logic";
+import { ServerGameState } from "../game/logic";
 
 export default class Server implements Party.Server {
   private gameState: ServerGameState;
@@ -21,7 +27,26 @@ export default class Server implements Party.Server {
       this.gameState
     );
 
-    this.party.broadcast(JSON.stringify(this.gameState));
+    this.party.broadcast(
+      JSON.stringify({
+        type: "gameState",
+        payload: convertServerToClientState(this.gameState),
+      })
+    );
+    const userId = this.gameState.users.findIndex(
+      (user) => user.id === connection.id
+    );
+
+    console.log(`User ID: ${userId}`);
+
+    if (userId >= 0) {
+      connection.send(
+        JSON.stringify({
+          type: "hand",
+          payload: this.gameState.users[userId].cards,
+        })
+      );
+    }
   }
   onClose(connection: Party.Connection) {
     this.gameState = gameUpdater(
@@ -31,7 +56,12 @@ export default class Server implements Party.Server {
       },
       this.gameState
     );
-    this.party.broadcast(JSON.stringify(this.gameState));
+    this.party.broadcast(
+      JSON.stringify({
+        type: "gameState",
+        payload: convertServerToClientState(this.gameState),
+      })
+    );
   }
   onMessage(message: string, sender: Party.Connection) {
     const action: ServerAction = {
@@ -40,7 +70,30 @@ export default class Server implements Party.Server {
     };
     console.log(`Received action ${action.type} from user ${sender.id}`);
     this.gameState = gameUpdater(action, this.gameState);
-    this.party.broadcast(JSON.stringify(this.gameState));
+    this.party.broadcast(
+      JSON.stringify({
+        type: "gameState",
+        payload: convertServerToClientState(this.gameState),
+      })
+    );
+
+    if (action.type === "draw") {
+      const userId = this.gameState.users.findIndex(
+        (user) => user.id === sender.id
+      );
+
+      if (userId >= 0) {
+        sender.send(
+          JSON.stringify({
+            type: "draw",
+            payload:
+              this.gameState.users[userId].cards[
+                this.gameState.users[userId].cards.length - 1
+              ],
+          })
+        );
+      }
+    }
   }
 }
 

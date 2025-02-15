@@ -1,25 +1,61 @@
 import usePartySocket from "partysocket/react";
-import { useState } from "react";
-import { ServerGameState, Action } from "../../game/logic";
+import { useReducer } from "react";
+import { Action, ClientGameState, ClientAction } from "../../game/logic";
+import { Card } from "../../game/Cards";
+import { v4 as uuid } from "uuid";
+
+export interface CardWithId {
+  card: Card;
+  id: string;
+}
+
+interface ClientState {
+  gameState: ClientGameState | null;
+  hand: CardWithId[];
+}
+
+const initialState: ClientState = {
+  gameState: null,
+  hand: [],
+};
+
+const getCardWithId = (card: Card) => ({ card, id: uuid() });
+
+const reducer = (state: ClientState, action: ClientAction): ClientState => {
+  switch (action.type) {
+    case "gameState":
+      return { ...state, gameState: action.payload };
+    case "hand":
+      return { ...state, hand: action.payload.map(getCardWithId) };
+    case "draw":
+      return { ...state, hand: [...state.hand, getCardWithId(action.payload)] };
+    case "discard":
+      return {
+        ...state,
+        hand: state.hand.filter((card) => card.id !== action.payload),
+      };
+  }
+};
 
 export const useGameRoom = (username: string, roomId: string) => {
-  const [gameState, setGameState] = useState<ServerGameState | null>(null);
+  const [clientState, clientDispatch] = useReducer(reducer, initialState);
 
   const socket = usePartySocket({
     host: process.env.NEXT_PUBLIC_SERVER_URL || "127.0.0.1:1999",
     room: roomId,
     id: username,
     onMessage(event: MessageEvent<string>) {
-      setGameState(JSON.parse(event.data));
+      clientDispatch(JSON.parse(event.data));
     },
   });
 
-  const dispatch = (action: Action) => {
+  const serverDispatch = (action: Action) => {
     socket.send(JSON.stringify(action));
   };
 
   return {
-    gameState,
-    dispatch,
+    clientState,
+    serverDispatch,
+    clientDispatch,
   };
 };
