@@ -41,7 +41,7 @@ export const useGameRoom = (username: string, roomId: string) => {
   const [clientState, clientDispatch] = useReducer(reducer, initialState);
 
   const socket = usePartySocket({
-    host: process.env.NEXT_PUBLIC_SERVER_URL || "127.0.0.1:1999",
+    host: process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:1999",
     room: roomId,
     id: username,
     onMessage(event: MessageEvent<string>) {
