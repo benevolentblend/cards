@@ -77,7 +77,7 @@ const Game = ({ username, roomId }: GameProps) => {
                   className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
                   onClick={() => discardCard({ card, id })}
                 >
-                  Discard
+                  Play
                 </button>
               )}
             </CardComponent>
