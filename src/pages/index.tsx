@@ -1,8 +1,10 @@
 import Game from "@/components/Game";
 import Layout from "@/components/Layout";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
+import { v4 as uuid } from "uuid";
 
 const queryParamsValidator = z.object({
   username: z.string().min(1),
@@ -16,6 +18,7 @@ interface GameSetup {
 }
 
 export default function Home() {
+  const [id] = useLocalStorage("id", uuid());
   const [setup, setSetup] = useState<GameSetup>({
     username: null,
     roomId: null,
@@ -61,7 +64,7 @@ export default function Home() {
     return (
       <>
         <Layout>
-          <Game roomId={setup.roomId} username={setup.username} />
+          <Game roomId={setup.roomId} username={setup.username} id={id} />
           <div className="flex justify-end">
             <button
               onClick={() => {

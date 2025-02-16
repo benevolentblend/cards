@@ -15,6 +15,7 @@ const addLog = (
 // If there is anything you want to track for a specific user, change this interface
 export interface User {
   id: string;
+  name: string;
 }
 
 export interface UserWithCards extends User {
@@ -27,7 +28,7 @@ export interface UserWithCardCount extends User {
 
 // Do not change this! Every game has a list of users and log of actions
 interface BaseGameState {
-  turn: string;
+  turn: User;
   direction: "clockwise" | "counterclockwise";
   log: {
     dt: number;
@@ -76,7 +77,6 @@ export type GameErrorState =
 export interface ClientGameState extends BaseGameState {
   users: UserWithCardCount[];
   lastDiscarded: Card;
-  discarding: string | null;
 }
 
 // This is how a fresh new game starts out, it's a function so you can make it dynamic!
@@ -86,7 +86,7 @@ export const initialGame = (): ServerGameState => {
   deck.shuffle();
   discardPile.addCards([deck.takeCard()]);
   return {
-    turn: "",
+    turn: { id: "", name: "Temp" },
     direction: "clockwise",
     users: [],
     deck: deck.getCards(),
@@ -107,7 +107,7 @@ export const validateServerAction = (
     return { reason: "user_not_found" };
   }
 
-  if (action.user.id !== state.turn) {
+  if (action.user.id !== state.turn.id) {
     return { reason: "wrong_turn" };
   }
 
@@ -121,13 +121,13 @@ export const validateServerAction = (
   return null;
 };
 
-const getNextTurn = (action: ServerAction, state: ServerGameState): string => {
+const getNextTurn = (action: ServerAction, state: ServerGameState): User => {
   const userIndex = state.users.findIndex((user) => user.id === action.user.id);
   const userCount = state.users.length;
   const move = state.direction === "clockwise" ? userIndex + 1 : userIndex - 1;
 
   const nextIndex = ((move % userCount) + userCount) % userCount; // wrapping formula from Liam
-  return state.users[nextIndex].id;
+  return state.users[nextIndex];
 };
 
 export const gameUpdater = (
@@ -139,16 +139,24 @@ export const gameUpdater = (
   switch (action.type) {
     case "UserEntered":
       const newUserHand = deck.deal(HAND_SIZE);
-      const turn = state.turn === "" ? action.user.id : state.turn; // If this is the first user in the room, make it their turn
+      const turn =
+        state.turn.id === ""
+          ? { name: action.user.name, id: action.user.id }
+          : state.turn; // If this is the first user in the room, make it their turn
+
+      const users = [
+        ...state.users,
+        { ...action.user, cards: newUserHand.getCards() },
+      ];
 
       return {
         ...state,
         turn,
-        users: [
-          ...state.users,
-          { ...action.user, cards: newUserHand.getCards() },
-        ],
-        log: addLog(`user ${action.user.id} joined 🎉`, state.log),
+        users,
+        log: addLog(
+          `${action.user.name} (${action.user.id}) joined 🎉, ${users.length} user(s) in room`,
+          state.log
+        ),
       };
 
     case "UserExit":
@@ -158,11 +166,16 @@ export const gameUpdater = (
           deck.addCards(user.cards);
         }
       });
+
       return {
         ...state,
         deck: deck.getCards(),
+        turn:
+          state.turn.id === action.user.id
+            ? getNextTurn(action, state)
+            : state.turn,
         users: state.users.filter((user) => user.id !== action.user.id),
-        log: addLog(`user ${action.user.id} left 😢`, state.log),
+        log: addLog(`user ${action.user.name} left 😢`, state.log),
       };
 
     case "draw":
@@ -182,7 +195,7 @@ export const gameUpdater = (
             ? user
             : { ...user, cards: [...user.cards, drawnCard] }
         ),
-        log: addLog(`user ${action.user.id} drew a card!`, state.log),
+        log: addLog(`user ${action.user.name} drew a card!`, state.log),
       };
 
     case "discard":
@@ -215,10 +228,9 @@ export const convertServerToClientState = (
   return {
     turn,
     direction,
-    discarding: null,
     lastDiscarded: discardPile[0],
-    users: users.map(({ cards, id }) => {
-      return { id, cardCount: cards.length };
+    users: users.map(({ cards, id, name }) => {
+      return { id, name, cardCount: cards.length };
     }),
     log,
   };

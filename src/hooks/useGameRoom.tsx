@@ -37,15 +37,18 @@ const reducer = (state: ClientState, action: ClientAction): ClientState => {
   }
 };
 
-export const useGameRoom = (username: string, roomId: string) => {
+export const useGameRoom = (name: string, id: string, roomId: string) => {
   const [clientState, clientDispatch] = useReducer(reducer, initialState);
 
   const socket = usePartySocket({
     host: process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:1999",
     room: roomId,
-    id: username,
+    id,
     onMessage(event: MessageEvent<string>) {
       clientDispatch(JSON.parse(event.data));
+    },
+    query: {
+      name,
     },
   });
 

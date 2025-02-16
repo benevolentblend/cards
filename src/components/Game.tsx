@@ -5,11 +5,13 @@ import { canBeDiscarded } from "@/utils";
 interface GameProps {
   username: string;
   roomId: string;
+  id: string;
 }
 
-const Game = ({ username, roomId }: GameProps) => {
+const Game = ({ username, id, roomId }: GameProps) => {
   const { clientState, serverDispatch, clientDispatch } = useGameRoom(
     username,
+    id,
     roomId
   );
 
@@ -18,9 +20,9 @@ const Game = ({ username, roomId }: GameProps) => {
     return <p>Waiting for server...</p>;
   }
   const lastDiscarded = clientState.gameState.lastDiscarded;
-  const isUsersTurn = clientState.gameState.turn === username;
+  const isUsersTurn = clientState.gameState.turn.id === id;
   const otherUsers = clientState.gameState.users.filter(
-    (user) => user.id !== username
+    (user) => user.id !== id
   );
 
   const drawCard = () => {
@@ -38,11 +40,11 @@ const Game = ({ username, roomId }: GameProps) => {
 
   return (
     <>
-      <div>Its {clientState.gameState.turn}&apos;s Turn</div>
+      <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
       <div className="">
         {otherUsers.map((user) => (
           <div key={user.id}>
-            {user.id}&apos;s cards
+            {user.name}&apos;s cards
             <div className="flex flex-wrap justify-center">
               {Array.from(Array(user.cardCount).keys()).map((i) => (
                 <CardComponent key={i} />

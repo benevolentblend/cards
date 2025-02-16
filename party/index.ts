@@ -9,6 +9,9 @@ import {
   validateServerAction,
 } from "../game/logic";
 import { ServerGameState } from "../game/logic";
+
+type CardConnection = Party.Connection<{ name: string }>;
+
 export default class Server implements Party.Server {
   private gameState: ServerGameState;
 
@@ -17,13 +20,15 @@ export default class Server implements Party.Server {
     console.log("Room created:", party.id);
     // party.storage.put;
   }
-  onConnect(connection: Party.Connection, ctx: Party.ConnectionContext) {
+  onConnect(connection: CardConnection, { request }: Party.ConnectionContext) {
     // A websocket just connected!
 
     // let's send a message to the connection
     // conn.send();
+    const name = new URL(request.url).searchParams.get("name") ?? "User";
+    connection.setState({ name });
     this.gameState = gameUpdater(
-      { type: "UserEntered", user: { id: connection.id } },
+      { type: "UserEntered", user: { id: connection.id, name } },
       this.gameState
     );
 
@@ -48,11 +53,12 @@ export default class Server implements Party.Server {
       );
     }
   }
-  onClose(connection: Party.Connection) {
+  onClose(connection: CardConnection) {
+    const name = connection.state?.name ?? "";
     this.gameState = gameUpdater(
       {
         type: "UserExit",
-        user: { id: connection.id },
+        user: { id: connection.id, name },
       },
       this.gameState
     );
@@ -63,10 +69,11 @@ export default class Server implements Party.Server {
       })
     );
   }
-  onMessage(message: string, sender: Party.Connection) {
+  onMessage(message: string, sender: CardConnection) {
+    const name = sender.state?.name ?? "";
     const action: ServerAction = {
       ...(JSON.parse(message) as Action),
-      user: { id: sender.id },
+      user: { id: sender.id, name },
     };
     console.log(`Received action ${action.type} from user ${sender.id}`);
     const userIndex = this.gameState.users.findIndex(
