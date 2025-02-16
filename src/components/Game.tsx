@@ -38,7 +38,7 @@ const Game = ({ username, roomId }: GameProps) => {
 
   return (
     <>
-      <div>Its {clientState.gameState.turn}'s Turn</div>
+      <div>Its {clientState.gameState.turn}&apos;s Turn</div>
       <div className="">
         {otherUsers.map((user) => (
           <div key={user.id}>
