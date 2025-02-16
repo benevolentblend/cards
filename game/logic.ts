@@ -1,3 +1,4 @@
+import { canBeDiscarded } from "@/utils";
 import { CardCollection, Deck, Hand, Card } from "./Cards";
 
 // util for easy adding logs
@@ -26,6 +27,8 @@ export interface UserWithCardCount extends User {
 
 // Do not change this! Every game has a list of users and log of actions
 interface BaseGameState {
+  turn: string;
+  direction: "clockwise" | "counterclockwise";
   log: {
     dt: number;
     message: string;
@@ -60,9 +63,20 @@ export interface ServerGameState extends BaseGameState {
   discardPile: Card[];
 }
 
+export type GameErrorState =
+  | {
+      reason: "user_not_found";
+    }
+  | {
+      reason: "bad_discard";
+      card: Card;
+    }
+  | { reason: "wrong_turn" };
+
 export interface ClientGameState extends BaseGameState {
   users: UserWithCardCount[];
   lastDiscarded: Card;
+  discarding: string | null;
 }
 
 // This is how a fresh new game starts out, it's a function so you can make it dynamic!
@@ -72,6 +86,8 @@ export const initialGame = (): ServerGameState => {
   deck.shuffle();
   discardPile.addCards([deck.takeCard()]);
   return {
+    turn: "",
+    direction: "clockwise",
     users: [],
     deck: deck.getCards(),
     discardPile: discardPile.getCards(),
@@ -82,6 +98,38 @@ export const initialGame = (): ServerGameState => {
 // Here are all the actions we can dispatch for a user
 type GameAction = { type: "draw" } | { type: "discard"; card: Card };
 
+export const validateServerAction = (
+  action: ServerAction,
+  state: ServerGameState,
+  userIndex: number
+): GameErrorState | null => {
+  if (userIndex < 0) {
+    return { reason: "user_not_found" };
+  }
+
+  if (action.user.id !== state.turn) {
+    return { reason: "wrong_turn" };
+  }
+
+  if (action.type === "discard") {
+    const lastDiscarded = state.discardPile[0];
+
+    if (!canBeDiscarded(lastDiscarded, action.card))
+      return { reason: "bad_discard", card: action.card };
+  }
+
+  return null;
+};
+
+const getNextTurn = (action: ServerAction, state: ServerGameState): string => {
+  const userIndex = state.users.findIndex((user) => user.id === action.user.id);
+  const userCount = state.users.length;
+  const move = state.direction === "clockwise" ? userIndex + 1 : userIndex - 1;
+
+  const nextIndex = ((move % userCount) + userCount) % userCount; // wrapping formula from Liam
+  return state.users[nextIndex].id;
+};
+
 export const gameUpdater = (
   action: ServerAction,
   state: ServerGameState
@@ -91,9 +139,11 @@ export const gameUpdater = (
   switch (action.type) {
     case "UserEntered":
       const newUserHand = deck.deal(HAND_SIZE);
+      const turn = state.turn === "" ? action.user.id : state.turn; // If this is the first user in the room, make it their turn
 
       return {
         ...state,
+        turn,
         users: [
           ...state.users,
           { ...action.user, cards: newUserHand.getCards() },
@@ -126,6 +176,7 @@ export const gameUpdater = (
       return {
         ...state,
         deck: deck.getCards(),
+        turn: getNextTurn(action, state),
         users: state.users.map((user) =>
           user.id !== action.user.id
             ? user
@@ -152,6 +203,7 @@ export const gameUpdater = (
 
           return user;
         }),
+        turn: getNextTurn(action, state),
       };
   }
 };
@@ -159,8 +211,11 @@ export const gameUpdater = (
 export const convertServerToClientState = (
   gameState: ServerGameState
 ): ClientGameState => {
-  const { log, users, discardPile } = gameState;
+  const { log, users, discardPile, turn, direction } = gameState;
   return {
+    turn,
+    direction,
+    discarding: null,
     lastDiscarded: discardPile[0],
     users: users.map(({ cards, id }) => {
       return { id, cardCount: cards.length };

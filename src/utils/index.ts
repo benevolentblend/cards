@@ -14,3 +14,14 @@ export const getCardValues = (card: Card) => {
 
   return { suit, name };
 };
+
+export const canBeDiscarded = (lastDiscarded: Card, played: Card): boolean => {
+  const { suit: lastDiscardeddSuit, name: lastDiscardedName } =
+    getCardValues(lastDiscarded);
+  const { suit: playedSuit, name: playedName } = getCardValues(played);
+
+  if (lastDiscardeddSuit === playedSuit) return true;
+  if (lastDiscardedName === playedName) return true;
+
+  return false;
+};

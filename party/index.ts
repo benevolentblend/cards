@@ -6,9 +6,9 @@ import {
   Action,
   ServerAction,
   convertServerToClientState,
+  validateServerAction,
 } from "../game/logic";
 import { ServerGameState } from "../game/logic";
-
 export default class Server implements Party.Server {
   private gameState: ServerGameState;
 
@@ -69,6 +69,32 @@ export default class Server implements Party.Server {
       user: { id: sender.id },
     };
     console.log(`Received action ${action.type} from user ${sender.id}`);
+    const userIndex = this.gameState.users.findIndex(
+      (user) => user.id === action.user.id
+    );
+
+    const error = validateServerAction(action, this.gameState, userIndex);
+
+    if (error) {
+      switch (error.reason) {
+        case "user_not_found":
+          console.error(`User ${sender.id} was not found`);
+          return;
+        case "bad_discard":
+          console.log(`User ${sender.id} can not play card ${error.card}`);
+          sender.send(
+            JSON.stringify({
+              type: "hand",
+              payload: this.gameState.users[userIndex].cards,
+            })
+          );
+          return;
+        case "wrong_turn":
+          console.log(`It is not ${sender.id}'s turn.`);
+          return;
+      }
+    }
+
     this.gameState = gameUpdater(action, this.gameState);
     this.party.broadcast(
       JSON.stringify({
@@ -78,21 +104,15 @@ export default class Server implements Party.Server {
     );
 
     if (action.type === "draw") {
-      const userId = this.gameState.users.findIndex(
-        (user) => user.id === sender.id
+      sender.send(
+        JSON.stringify({
+          type: "draw",
+          payload:
+            this.gameState.users[userIndex].cards[
+              this.gameState.users[userIndex].cards.length - 1
+            ],
+        })
       );
-
-      if (userId >= 0) {
-        sender.send(
-          JSON.stringify({
-            type: "draw",
-            payload:
-              this.gameState.users[userId].cards[
-                this.gameState.users[userId].cards.length - 1
-              ],
-          })
-        );
-      }
     }
   }
 }

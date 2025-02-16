@@ -1,6 +1,6 @@
 import { CardWithId, useGameRoom } from "@/hooks/useGameRoom";
-import { Card } from "../../game/Cards";
 import CardComponent from "./Card";
+import { canBeDiscarded } from "@/utils";
 
 interface GameProps {
   username: string;
@@ -17,7 +17,8 @@ const Game = ({ username, roomId }: GameProps) => {
   if (clientState.gameState === null) {
     return <p>Waiting for server...</p>;
   }
-
+  const lastDiscarded = clientState.gameState.lastDiscarded;
+  const isUsersTurn = clientState.gameState.turn === username;
   const otherUsers = clientState.gameState.users.filter(
     (user) => user.id !== username
   );
@@ -37,6 +38,7 @@ const Game = ({ username, roomId }: GameProps) => {
 
   return (
     <>
+      <div>Its {clientState.gameState.turn}'s Turn</div>
       <div className="">
         {otherUsers.map((user) => (
           <div key={user.id}>
@@ -54,26 +56,33 @@ const Game = ({ username, roomId }: GameProps) => {
         <div className="flex">
           <CardComponent card={clientState.gameState.lastDiscarded} />
           <CardComponent>
-            <button
-              className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
-              onClick={drawCard}
-            >
-              Draw Card
-            </button>
+            {isUsersTurn && (
+              <button
+                className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+                onClick={drawCard}
+              >
+                Draw Card
+              </button>
+            )}
           </CardComponent>
         </div>
       </div>
       <div className="flex flex-wrap justify-center pb-4">
-        {clientState.hand.map(({ card, id }) => (
-          <CardComponent key={id} card={card}>
-            <button
-              className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
-              onClick={() => discardCard({ card, id })}
-            >
-              Discard
-            </button>
-          </CardComponent>
-        ))}
+        {clientState.hand.map(({ card, id }) => {
+          const cardCanBeDiscarded = canBeDiscarded(lastDiscarded, card);
+          return (
+            <CardComponent key={id} card={card}>
+              {isUsersTurn && cardCanBeDiscarded && (
+                <button
+                  className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+                  onClick={() => discardCard({ card, id })}
+                >
+                  Discard
+                </button>
+              )}
+            </CardComponent>
+          );
+        })}
       </div>
       <div className="bg-yellow-100 flex flex-col p-4 rounded text-sm">
         {clientState.gameState.log.map((logEntry, i) => (
