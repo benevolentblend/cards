@@ -78,7 +78,7 @@ export default function Home() {
                   showGame: false,
                 });
               }}
-              className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+              className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:animate-wiggle"
             >
               Leave Room
             </button>
@@ -122,7 +122,7 @@ export default function Home() {
             name="roomid"
             id="roomid"
           />
-          <button className="rounded border p-5 bg-yellow-400 group text-black shadow hover:shadow-lg transition-all duration-200 hover:scale-125">
+          <button className="rounded-sm border p-5 bg-yellow-400 group text-black shadow-sm hover:shadow-lg transition-all duration-200 hover:scale-125">
             <p className="font-bold hover:animate-wiggle">Join the party🎉</p>
           </button>
         </form>

@@ -60,7 +60,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
           <CardComponent>
             {isUsersTurn && (
               <button
-                className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+                className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:animate-wiggle"
                 onClick={drawCard}
               >
                 Draw Card
@@ -76,7 +76,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
             <CardComponent key={id} card={card}>
               {isUsersTurn && cardCanBeDiscarded && (
                 <button
-                  className="bg-black rounded p-2 inline-block shadow text-xs text-stone-50 hover:animate-wiggle"
+                  className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:animate-wiggle"
                   onClick={() => discardCard({ card, id })}
                 >
                   Play
@@ -86,7 +86,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
           );
         })}
       </div>
-      <div className="bg-yellow-100 flex flex-col p-4 rounded text-sm">
+      <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
         {clientState.gameState.log.map((logEntry, i) => (
           <p key={logEntry.dt} className="animate-appear text-black">
             {logEntry.message}
