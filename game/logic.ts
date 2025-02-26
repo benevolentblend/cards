@@ -26,10 +26,12 @@ export interface UserWithCardCount extends User {
   cardCount: number;
 }
 
+type Direction = "clockwise" | "counterclockwise";
+
 // Do not change this! Every game has a list of users and log of actions
 interface BaseGameState {
   turn: User;
-  direction: "clockwise" | "counterclockwise";
+  direction: Direction;
   log: {
     dt: number;
     message: string;
@@ -122,13 +124,17 @@ export const validateServerAction = (
   return null;
 };
 
-const getNextTurn = (action: ServerAction, state: ServerGameState): User => {
-  const userIndex = state.users.findIndex((user) => user.id === action.user.id);
-  const userCount = state.users.length;
-  const move = state.direction === "clockwise" ? userIndex + 1 : userIndex - 1;
+const getNextTurn = (
+  action: ServerAction,
+  users: UserWithCards[],
+  direction: Direction
+): User => {
+  const userIndex = users.findIndex((user) => user.id === action.user.id);
+  const userCount = users.length;
+  const move = direction === "clockwise" ? userIndex + 1 : userIndex - 1;
 
   const nextIndex = ((move % userCount) + userCount) % userCount; // wrapping formula from Liam
-  return state.users[nextIndex];
+  return users[nextIndex];
 };
 
 export const gameUpdater = (
@@ -173,7 +179,7 @@ export const gameUpdater = (
         deck: deck.getCards(),
         turn:
           state.turn.id === action.user.id
-            ? getNextTurn(action, state)
+            ? getNextTurn(action, state.users, state.direction)
             : state.turn,
         users: state.users.filter((user) => user.id !== action.user.id),
         log: addLog(`user ${action.user.name} left 😢`, state.log),
@@ -207,6 +213,7 @@ export const gameUpdater = (
             ? "counterclockwise"
             : "clockwise"
           : state.direction;
+
       return {
         ...state,
         direction,
@@ -224,7 +231,7 @@ export const gameUpdater = (
 
           return user;
         }),
-        turn: getNextTurn(action, state),
+        turn: getNextTurn(action, state.users, direction),
       };
   }
 };
