@@ -42,8 +42,6 @@ export default class Server implements Party.Server {
       (user) => user.id === connection.id
     );
 
-    console.log(`User ID: ${userId}`);
-
     if (userId >= 0) {
       connection.send(
         JSON.stringify({
@@ -85,10 +83,10 @@ export default class Server implements Party.Server {
     if (error) {
       switch (error.reason) {
         case "user_not_found":
-          console.error(`User ${sender.id} was not found`);
+          console.error(`User ${name} was not found`);
           return;
         case "bad_discard":
-          console.log(`User ${sender.id} can not play card ${error.card}`);
+          console.log(`User ${name} can not play card ${error.card}`);
           sender.send(
             JSON.stringify({
               type: "hand",
@@ -97,7 +95,7 @@ export default class Server implements Party.Server {
           );
           return;
         case "wrong_turn":
-          console.log(`It is not ${sender.id}'s turn.`);
+          console.log(`It is not ${name}'s turn.`);
           return;
       }
     }

@@ -41,14 +41,26 @@ const Game = ({ username, id, roomId }: GameProps) => {
   return (
     <>
       <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
-      <div className="">
+      <div className="flex justify-between flex-wrap">
         {otherUsers.map((user) => (
           <div key={user.id}>
             {user.name}&apos;s cards
-            <div className="flex flex-wrap justify-center">
-              {Array.from(Array(user.cardCount).keys()).map((i) => (
-                <CardComponent key={i} />
-              ))}
+            <div className="relative w-[155px] overflow-hidden h-[160px]">
+              {Array.from(Array(user.cardCount).keys()).map((i) => {
+                return (
+                  <div
+                    key={i}
+                    className="absolute"
+                    style={{
+                      left: `${(i * 35) / user.cardCount}px`,
+                      top: `${(i * 20) / user.cardCount}px`,
+                      rotate: `${(i * 35) / user.cardCount}deg`,
+                    }}
+                  >
+                    <CardComponent />
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
