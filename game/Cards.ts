@@ -2,7 +2,17 @@
 
 import { getCardValues } from "@/utils";
 
-export type CardName = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+export type CardName =
+  | "1"
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
+  | "9"
+  | "Reverse";
 
 export type CardSuit = "R" | "B" | "G" | "Y";
 
@@ -161,7 +171,7 @@ export class Deck extends CardCollection implements IDeck {
   public static Build({
     duplicates = 1,
     suits = ["R", "B", "G", "Y"],
-    cardNames = ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    cardNames = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "Reverse"],
   }: DeckBuildArgs) {
     const cards: Card[] = [];
 

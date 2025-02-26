@@ -1,4 +1,4 @@
-import { canBeDiscarded } from "@/utils";
+import { canBeDiscarded, getCardValues } from "@/utils";
 import { CardCollection, Deck, Hand, Card } from "./Cards";
 
 // util for easy adding logs
@@ -83,6 +83,7 @@ export interface ClientGameState extends BaseGameState {
 export const initialGame = (): ServerGameState => {
   const deck = Deck.Build({ duplicates: 2 });
   const discardPile = new CardCollection([]);
+
   deck.shuffle();
   discardPile.addCards([deck.takeCard()]);
   return {
@@ -189,7 +190,6 @@ export const gameUpdater = (
       return {
         ...state,
         deck: deck.getCards(),
-        turn: getNextTurn(action, state),
         users: state.users.map((user) =>
           user.id !== action.user.id
             ? user
@@ -200,8 +200,16 @@ export const gameUpdater = (
 
     case "discard":
       const discardPile = new CardCollection(state.discardPile);
+      const { name: discardName } = getCardValues(action.card);
+      const direction =
+        discardName === "Reverse"
+          ? state.direction === "clockwise"
+            ? "counterclockwise"
+            : "clockwise"
+          : state.direction;
       return {
         ...state,
+        direction,
         users: state.users.map((user) => {
           if (user.id === action.user.id) {
             const userHand = new Hand(user.cards);
