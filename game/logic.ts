@@ -125,16 +125,139 @@ export const validateServerAction = (
 };
 
 const getNextTurn = (
-  action: ServerAction,
+  currentTurn: User,
   users: UserWithCards[],
   direction: Direction
 ): User => {
-  const userIndex = users.findIndex((user) => user.id === action.user.id);
+  const userIndex = users.findIndex((user) => user.id === currentTurn.id);
   const userCount = users.length;
   const move = direction === "clockwise" ? userIndex + 1 : userIndex - 1;
 
   const nextIndex = ((move % userCount) + userCount) % userCount; // wrapping formula from Liam
   return users[nextIndex];
+};
+
+const getOtherDirection = (direction: Direction): Direction =>
+  direction === "clockwise" ? "counterclockwise" : "clockwise";
+
+const handleUserEntered = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "UserEntered" }>
+) => {
+  const newUserHand = deck.deal(HAND_SIZE);
+  const turn =
+    state.turn.id === ""
+      ? { name: action.user.name, id: action.user.id }
+      : state.turn; // If this is the first user in the room, make it their turn
+
+  const users = [
+    ...state.users,
+    { ...action.user, cards: newUserHand.getCards() },
+  ];
+
+  return {
+    ...state,
+    turn,
+    users,
+    log: addLog(
+      `${action.user.name} (${action.user.id}) joined 🎉, ${users.length} user(s) in room`,
+      state.log
+    ),
+  };
+};
+
+const handleUserExited = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "UserExit" }>
+) => {
+  // Add users cards back to the deck
+  state.users.forEach((user) => {
+    if (user.id === action.user.id) {
+      deck.addCards(user.cards);
+    }
+  });
+
+  return {
+    ...state,
+    deck: deck.getCards(),
+    turn:
+      state.turn.id === action.user.id
+        ? getNextTurn(action.user, state.users, state.direction)
+        : state.turn,
+    users: state.users.filter((user) => user.id !== action.user.id),
+    log: addLog(`user ${action.user.name} left 😢`, state.log),
+  };
+};
+
+const handleDrew = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "draw" }>
+) => {
+  let discardPile = state.discardPile;
+  let log = state.log;
+
+  if (deck.isEmpty()) {
+    console.log(state);
+    const [topCard, ...newDeck] = state.discardPile;
+    discardPile = [topCard];
+    console.log(newDeck);
+    deck.addCards(newDeck);
+    deck.shuffle();
+    log = addLog(`Shuffled discard pile into deck!`, state.log);
+  }
+  const drawnCard = deck.drawCard();
+  return {
+    ...state,
+    deck: deck.getCards(),
+    discardPile,
+    users: state.users.map((user) =>
+      user.id !== action.user.id
+        ? user
+        : { ...user, cards: [...user.cards, drawnCard] }
+    ),
+    log: addLog(`user ${action.user.name} drew a card!`, log),
+  };
+};
+
+const handleDiscarded = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "discard" }>
+) => {
+  const discardPile = new CardCollection(state.discardPile);
+  const { name: discardName } = getCardValues(action.card);
+  const users = state.users.map((user) => {
+    if (user.id === action.user.id) {
+      const userHand = new Hand(user.cards);
+
+      if (userHand.hasCard(action.card)) {
+        userHand.playCard(action.card);
+        discardPile.addCards([action.card]);
+      }
+
+      return { ...user, cards: [...userHand.getCards()] };
+    }
+
+    return user;
+  });
+  const direction =
+    discardName === "Reverse"
+      ? getOtherDirection(state.direction)
+      : state.direction;
+
+  const nextTurn = getNextTurn(action.user, users, direction);
+  const turn =
+    discardName === "Skip" ? getNextTurn(nextTurn, users, direction) : nextTurn;
+
+  return {
+    ...state,
+    direction,
+    discardPile: discardPile.getCards(),
+    users,
+    turn,
+  };
 };
 
 export const gameUpdater = (
@@ -145,94 +268,13 @@ export const gameUpdater = (
 
   switch (action.type) {
     case "UserEntered":
-      const newUserHand = deck.deal(HAND_SIZE);
-      const turn =
-        state.turn.id === ""
-          ? { name: action.user.name, id: action.user.id }
-          : state.turn; // If this is the first user in the room, make it their turn
-
-      const users = [
-        ...state.users,
-        { ...action.user, cards: newUserHand.getCards() },
-      ];
-
-      return {
-        ...state,
-        turn,
-        users,
-        log: addLog(
-          `${action.user.name} (${action.user.id}) joined 🎉, ${users.length} user(s) in room`,
-          state.log
-        ),
-      };
-
+      return handleUserEntered(deck, state, action);
     case "UserExit":
-      // Add users cards back to the deck
-      state.users.forEach((user) => {
-        if (user.id === action.user.id) {
-          deck.addCards(user.cards);
-        }
-      });
-
-      return {
-        ...state,
-        deck: deck.getCards(),
-        turn:
-          state.turn.id === action.user.id
-            ? getNextTurn(action, state.users, state.direction)
-            : state.turn,
-        users: state.users.filter((user) => user.id !== action.user.id),
-        log: addLog(`user ${action.user.name} left 😢`, state.log),
-      };
-
+      return handleUserExited(deck, state, action);
     case "draw":
-      if (deck.isEmpty()) {
-        return {
-          ...state,
-          log: addLog(`No more cards!`, state.log),
-        };
-      }
-      const drawnCard = deck.drawCard();
-      return {
-        ...state,
-        deck: deck.getCards(),
-        users: state.users.map((user) =>
-          user.id !== action.user.id
-            ? user
-            : { ...user, cards: [...user.cards, drawnCard] }
-        ),
-        log: addLog(`user ${action.user.name} drew a card!`, state.log),
-      };
-
+      return handleDrew(deck, state, action);
     case "discard":
-      const discardPile = new CardCollection(state.discardPile);
-      const { name: discardName } = getCardValues(action.card);
-      const direction =
-        discardName === "Reverse"
-          ? state.direction === "clockwise"
-            ? "counterclockwise"
-            : "clockwise"
-          : state.direction;
-
-      return {
-        ...state,
-        direction,
-        users: state.users.map((user) => {
-          if (user.id === action.user.id) {
-            const userHand = new Hand(user.cards);
-
-            if (userHand.hasCard(action.card)) {
-              userHand.playCard(action.card);
-              discardPile.addCards([action.card]);
-            }
-
-            return { ...user, cards: [...userHand.getCards()] };
-          }
-
-          return user;
-        }),
-        turn: getNextTurn(action, state.users, direction),
-      };
+      return handleDiscarded(state, action);
   }
 };
 
