@@ -72,7 +72,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
           <CardComponent>
             {isUsersTurn && (
               <button
-                className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:animate-wiggle"
+                className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:cursor-pointer"
                 onClick={drawCard}
               >
                 Draw Card
@@ -88,7 +88,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
             <CardComponent key={id} card={card}>
               {isUsersTurn && cardCanBeDiscarded && (
                 <button
-                  className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:animate-wiggle"
+                  className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:cursor-pointer"
                   onClick={() => discardCard({ card, id })}
                 >
                   Play
