@@ -1,4 +1,5 @@
 import type * as Party from "partykit/server";
+import { z } from "zod";
 
 import {
   gameUpdater,
@@ -12,12 +13,20 @@ import { ServerGameState } from "../game/logic";
 
 type CardConnection = Party.Connection<{ name: string }>;
 
+const requestPayloadValidator = z.object({
+  message: z.enum(["count"]),
+});
+
+const DEFAULT_HEADERS = {
+  "Access-Control-Allow-Origin": process.env.APP_URL || "",
+};
+
 export default class Server implements Party.Server {
   private gameState: ServerGameState;
 
-  constructor(readonly party: Party.Party) {
+  constructor(readonly room: Party.Room) {
     this.gameState = initialGame();
-    console.log("Room created:", party.id);
+    console.log("Room created:", room.id);
     // party.storage.put;
   }
   onConnect(connection: CardConnection, { request }: Party.ConnectionContext) {
@@ -32,7 +41,7 @@ export default class Server implements Party.Server {
       this.gameState
     );
 
-    this.party.broadcast(
+    this.room.broadcast(
       JSON.stringify({
         type: "gameState",
         payload: convertServerToClientState(this.gameState),
@@ -60,7 +69,7 @@ export default class Server implements Party.Server {
       },
       this.gameState
     );
-    this.party.broadcast(
+    this.room.broadcast(
       JSON.stringify({
         type: "gameState",
         payload: convertServerToClientState(this.gameState),
@@ -101,7 +110,7 @@ export default class Server implements Party.Server {
     }
 
     this.gameState = gameUpdater(action, this.gameState);
-    this.party.broadcast(
+    this.room.broadcast(
       JSON.stringify({
         type: "gameState",
         payload: convertServerToClientState(this.gameState),
@@ -118,6 +127,26 @@ export default class Server implements Party.Server {
             ],
         })
       );
+    }
+  }
+  async onRequest(request: Party.Request) {
+    if (request.method !== "POST") {
+      return new Response("Bad request", { status: 400 });
+    }
+
+    const payload = await request.json();
+    const parsePayload = requestPayloadValidator.safeParse(payload);
+
+    if (!parsePayload.success) {
+      return new Response("Bad request", { status: 400 });
+    }
+
+    switch (parsePayload.data.message) {
+      case "count":
+        const count = Array.from(this.room.getConnections()).length;
+        return new Response(JSON.stringify({ count: count }), {
+          headers: DEFAULT_HEADERS,
+        });
     }
   }
 }
