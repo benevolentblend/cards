@@ -1,6 +1,7 @@
 import { CardWithId, useGameRoom } from "@/hooks/useGameRoom";
 import CardComponent from "./Card";
 import { canBeDiscarded } from "@/utils";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 interface GameProps {
   username: string;
@@ -14,6 +15,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
     id,
     roomId
   );
+  const [logs] = useLocalStorage("logs", "false");
 
   // Indicated that the game is loading
   if (clientState.gameState === null) {
@@ -99,13 +101,15 @@ const Game = ({ username, id, roomId }: GameProps) => {
         })}
       </div>
       <div className="text-center">{username}</div>
-      <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
-        {clientState.gameState.log.map((logEntry, i) => (
-          <p key={logEntry.dt} className="animate-appear text-black">
-            {logEntry.message}
-          </p>
-        ))}
-      </div>
+      {logs === "true" && (
+        <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
+          {clientState.gameState.log.map((logEntry, i) => (
+            <p key={logEntry.dt} className="animate-appear text-black">
+              {logEntry.message}
+            </p>
+          ))}
+        </div>
+      )}
     </>
   );
 };
