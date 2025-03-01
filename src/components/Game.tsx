@@ -98,6 +98,7 @@ const Game = ({ username, id, roomId }: GameProps) => {
           );
         })}
       </div>
+      <div className="text-center">{username}</div>
       <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
         {clientState.gameState.log.map((logEntry, i) => (
           <p key={logEntry.dt} className="animate-appear text-black">

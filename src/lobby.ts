@@ -1,13 +1,13 @@
 import { PartySocket } from "partysocket";
 import { z } from "zod";
 
-function randomCharacters(len: number, characters: string) {
+const randomCharacters = (len: number, characters: string) => {
   let random = "";
   for (let i = len; i > 0; i--) {
     random += characters[Math.floor(Math.random() * characters.length)];
   }
   return random;
-}
+};
 
 const responsePayloadValidator = z.object({
   count: z.number(),
@@ -38,3 +38,6 @@ export const getAvailableRoomId = async () => {
 
   return roomCode;
 };
+
+export const getRandomUsername = () =>
+  `Guest ${randomCharacters(3, "1234567890")}`;
