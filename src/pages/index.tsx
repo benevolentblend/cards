@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { v4 as uuid } from "uuid";
 import CreateRoomButton from "@/components/CreateRoomButton";
+import NameForm from "@/components/NameForm";
 
 interface GameSetup {
   username: string | null;
@@ -12,30 +13,16 @@ interface GameSetup {
 
 export default function Home() {
   const [id] = useLocalStorage("id", uuid());
-  const [username, setName] = useLocalStorage("username", "");
+  const [username, setUsername] = useLocalStorage("username", "");
+  console.log({ username }, "From index.tsx");
 
   return (
     <Layout>
       <h1 className="text-2xl pb-5">Cards</h1>
-      <div>
-        <form className="flex flex-col gap-4">
-          <label
-            className="text-stone-600 text-xs font-bold"
-            htmlFor="username"
-          >
-            Username
-          </label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setName(e.currentTarget.value)}
-            className="border border-black p-2"
-            name="username"
-            id="username"
-          />
 
-          <CreateRoomButton disabled={username === ""} />
-        </form>
+      <NameForm {...{ username, setUsername }} />
+      <div className="flex-col">
+        <CreateRoomButton disabled={username === ""} />
       </div>
     </Layout>
   );

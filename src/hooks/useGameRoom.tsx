@@ -22,6 +22,7 @@ const initialState: ClientState = {
 const getCardWithId = (card: Card) => ({ card, id: uuid() });
 
 const reducer = (state: ClientState, action: ClientAction): ClientState => {
+  console.log({ state, action, type: action.type });
   switch (action.type) {
     case "gameState":
       return { ...state, gameState: action.payload };

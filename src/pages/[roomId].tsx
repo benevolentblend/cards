@@ -5,6 +5,7 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useRouter } from "next/router";
 import { getRandomUsername } from "@/lobby";
 import { useEffect } from "react";
+import RoomCode from "@/components/RoomCode";
 
 export default function Home() {
   const router = useRouter();
@@ -17,18 +18,20 @@ export default function Home() {
   useEffect(() => {
     if (username === "") setUsername(getRandomUsername());
   }, [setUsername, username]);
+  if (!router.isReady || typeof router.query.roomId !== "string") {
+    return (
+      <Layout>
+        <div className="text-center">Loading...</div>
+      </Layout>
+    );
+  }
 
-  console.log({ roomId: router.query.roomId });
+  const roomId = router.query.roomId;
 
   return (
     <Layout>
-      {router.isReady && (
-        <Game
-          roomId={router.query.roomId as string}
-          username={username}
-          id={id}
-        />
-      )}
+      <RoomCode code={roomId} />
+      <Game {...{ roomId, username, setUsername, id }} />
     </Layout>
   );
 }

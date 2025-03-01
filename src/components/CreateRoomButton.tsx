@@ -26,7 +26,7 @@ const CreateRoomButton: FC<CreateRoomButtonProps> = ({ disabled = false }) => {
     <button
       disabled={disabled || code === ""}
       onClick={onClick}
-      className="disabled:opacity-75 rounded-sm border p-5 bg-yellow-400 group text-black shadow-sm enabled:hover:shadow-lg enabled:hover:cursor-pointer transition-all duration-200"
+      className="w-full disabled:opacity-50 rounded-sm border p-5 bg-yellow-400 group text-black shadow-sm enabled:hover:shadow-lg enabled:hover:cursor-pointer transition-all duration-200"
     >
       Create Room
     </button>

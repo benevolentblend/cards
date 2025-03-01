@@ -91,10 +91,10 @@ export default class Server implements Party.Server {
 
     if (error) {
       switch (error.reason) {
-        case "user_not_found":
+        case "userNotFound":
           console.error(`User ${name} was not found`);
           return;
-        case "bad_discard":
+        case "badDiscard":
           console.log(`User ${name} can not play card ${error.card}`);
           sender.send(
             JSON.stringify({
@@ -103,7 +103,7 @@ export default class Server implements Party.Server {
             })
           );
           return;
-        case "wrong_turn":
+        case "wrongTurn":
           console.log(`It is not ${name}'s turn.`);
           return;
       }
@@ -127,6 +127,17 @@ export default class Server implements Party.Server {
             ],
         })
       );
+    }
+
+    if (action.type === "startGame") {
+      this.gameState.users.forEach((user) => {
+        const connection = this.room.getConnection(user.id)?.send(
+          JSON.stringify({
+            type: "hand",
+            payload: user.cards,
+          })
+        );
+      });
     }
   }
   async onRequest(request: Party.Request) {

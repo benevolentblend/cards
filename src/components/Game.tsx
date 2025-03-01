@@ -2,14 +2,17 @@ import { CardWithId, useGameRoom } from "@/hooks/useGameRoom";
 import CardComponent from "./Card";
 import { canBeDiscarded } from "@/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import GameLobby from "./GameLobby";
+import GameOver from "./GameOver";
 
 interface GameProps {
   username: string;
+  setUsername: (username: string) => void;
   roomId: string;
   id: string;
 }
 
-const Game = ({ username, id, roomId }: GameProps) => {
+const Game = ({ username, setUsername, id, roomId }: GameProps) => {
   const { clientState, serverDispatch, clientDispatch } = useGameRoom(
     username,
     id,
@@ -21,8 +24,10 @@ const Game = ({ username, id, roomId }: GameProps) => {
   if (clientState.gameState === null) {
     return <p>Waiting for server...</p>;
   }
+  const isHost = clientState.gameState.host.id === id;
   const lastDiscarded = clientState.gameState.lastDiscarded;
-  const isUsersTurn = clientState.gameState.turn.id === id;
+  const isUsersTurn =
+    clientState.gameState.turn && clientState.gameState.turn.id === id;
   const otherUsers = clientState.gameState.users.filter(
     (user) => user.id !== id
   );
@@ -34,15 +39,42 @@ const Game = ({ username, id, roomId }: GameProps) => {
   };
 
   const discardCard = (card: CardWithId) => {
-    // Dispatch allows you to send an action!
-    // Modify /game/logic.ts to change what actions you can send
     serverDispatch({ type: "discard", card: card.card });
     clientDispatch({ type: "discard", payload: card.id });
   };
 
+  if (clientState.gameState.phase === "lobby") {
+    return (
+      <GameLobby
+        {...{
+          otherUsers,
+          setUsername,
+          username,
+          serverDispatch,
+          isHost: isHost,
+        }}
+      />
+    );
+  }
+
+  if (clientState.gameState.phase === "gameOver") {
+    const winner = clientState.gameState.turn;
+    return (
+      <GameOver
+        {...{
+          serverDispatch,
+          isHost,
+          winner,
+        }}
+      />
+    );
+  }
+
   return (
     <>
-      <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
+      {!!clientState.gameState.turn && (
+        <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
+      )}
       <div className="flex justify-between flex-wrap">
         {otherUsers.map((user) => (
           <div key={user.id}>

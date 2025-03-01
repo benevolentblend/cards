@@ -28,15 +28,34 @@ export interface UserWithCardCount extends User {
 
 type Direction = "clockwise" | "counterclockwise";
 
+// initial host until a user is assigned
+const fakeHost = {
+  id: "fakehost",
+  name: "",
+};
+
 // Do not change this! Every game has a list of users and log of actions
-interface BaseGameState {
-  turn: User;
-  direction: Direction;
-  log: {
-    dt: number;
-    message: string;
-  }[];
-}
+type BaseGameState =
+  | {
+      turn?: User;
+      phase: "lobby";
+      host: User;
+      direction: Direction;
+      log: {
+        dt: number;
+        message: string;
+      }[];
+    }
+  | {
+      turn: User;
+      phase: "game" | "gameOver";
+      host: User;
+      direction: Direction;
+      log: {
+        dt: number;
+        message: string;
+      }[];
+    };
 
 // Do not change!
 export type Action = DefaultAction | GameAction;
@@ -58,28 +77,34 @@ type WithUser<T> = T & { user: User };
 
 export type DefaultAction = { type: "UserEntered" } | { type: "UserExit" };
 
+// Here are all the actions we can dispatch for a user
+type GameAction =
+  | { type: "startGame" }
+  | { type: "draw" }
+  | { type: "discard"; card: Card };
+
 // This interface holds all the information about your game
 
-export interface ServerGameState extends BaseGameState {
+export type ServerGameState = BaseGameState & {
   users: UserWithCards[];
   deck: Card[];
   discardPile: Card[];
-}
+};
 
 export type GameErrorState =
   | {
-      reason: "user_not_found";
+      reason: "userNotFound";
     }
   | {
-      reason: "bad_discard";
+      reason: "badDiscard";
       card: Card;
     }
-  | { reason: "wrong_turn" };
+  | { reason: "wrongTurn" };
 
-export interface ClientGameState extends BaseGameState {
+export type ClientGameState = BaseGameState & {
   users: UserWithCardCount[];
   lastDiscarded: Card;
-}
+};
 
 // This is how a fresh new game starts out, it's a function so you can make it dynamic!
 export const initialGame = (): ServerGameState => {
@@ -89,7 +114,9 @@ export const initialGame = (): ServerGameState => {
   deck.shuffle();
   discardPile.addCards([deck.takeCard()]);
   return {
-    turn: { id: "", name: "Temp" },
+    turn: undefined,
+    host: fakeHost,
+    phase: "lobby",
     direction: "clockwise",
     users: [],
     deck: deck.getCards(),
@@ -98,27 +125,24 @@ export const initialGame = (): ServerGameState => {
   };
 };
 
-// Here are all the actions we can dispatch for a user
-type GameAction = { type: "draw" } | { type: "discard"; card: Card };
-
 export const validateServerAction = (
   action: ServerAction,
   state: ServerGameState,
   userIndex: number
 ): GameErrorState | null => {
   if (userIndex < 0) {
-    return { reason: "user_not_found" };
+    return { reason: "userNotFound" };
   }
 
-  if (action.user.id !== state.turn.id) {
-    return { reason: "wrong_turn" };
+  if (state.phase === "game" && action.user.id !== state.turn.id) {
+    return { reason: "wrongTurn" };
   }
 
   if (action.type === "discard") {
     const lastDiscarded = state.discardPile[0];
 
     if (!canBeDiscarded(lastDiscarded, action.card))
-      return { reason: "bad_discard", card: action.card };
+      return { reason: "badDiscard", card: action.card };
   }
 
   return null;
@@ -144,26 +168,28 @@ const handleUserEntered = (
   deck: Deck,
   state: ServerGameState,
   action: Extract<ServerAction, { type: "UserEntered" }>
-) => {
-  const newUserHand = deck.deal(HAND_SIZE);
-  const turn =
-    state.turn.id === ""
-      ? { name: action.user.name, id: action.user.id }
-      : state.turn; // If this is the first user in the room, make it their turn
-
+): ServerGameState => {
+  const newUserHand =
+    state.phase === "lobby" ? deck.deal(HAND_SIZE) : new Hand();
+  const isFirstPlayer = state.host.id === fakeHost.id;
   const users = [
     ...state.users,
     { ...action.user, cards: newUserHand.getCards() },
   ];
 
-  return {
+  const host = isFirstPlayer ? action.user : state.host;
+  const nextState = {
     ...state,
-    turn,
-    users,
+    host,
     log: addLog(
       `${action.user.name} (${action.user.id}) joined 🎉, ${users.length} user(s) in room`,
       state.log
     ),
+  };
+
+  return {
+    ...nextState,
+    users,
   };
 };
 
@@ -171,23 +197,65 @@ const handleUserExited = (
   deck: Deck,
   state: ServerGameState,
   action: Extract<ServerAction, { type: "UserExit" }>
-) => {
+): ServerGameState => {
   // Add users cards back to the deck
   state.users.forEach((user) => {
     if (user.id === action.user.id) {
       deck.addCards(user.cards);
     }
   });
+  const isLastPlayer = state.users.length < 2;
+  const nextState = {
+    ...state,
+    users: state.users.filter((user) => user.id !== action.user.id),
+    deck: deck.getCards(),
+    log: addLog(`user ${action.user.name} left 😢`, state.log),
+  };
+
+  if (isLastPlayer) {
+    return {
+      ...nextState,
+      phase: "lobby",
+      turn: undefined,
+      host: fakeHost,
+    };
+  }
+
+  if (state.phase === "lobby") {
+    return nextState;
+  }
+
+  const isLeavingPlayersTurn = state.turn.id === action.user.id;
+  return {
+    ...nextState,
+    turn: isLeavingPlayersTurn
+      ? getNextTurn(action.user, state.users, state.direction)
+      : state.turn,
+  };
+};
+
+const handleStartGame = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "startGame" }>
+): ServerGameState => {
+  state.users.forEach((user) => {
+    deck.addCards(user.cards);
+  });
+
+  deck.shuffle();
+
+  const users = state.users.map((user) => ({
+    ...user,
+    cards: deck.deal(HAND_SIZE).getCards(),
+  }));
 
   return {
     ...state,
     deck: deck.getCards(),
-    turn:
-      state.turn.id === action.user.id
-        ? getNextTurn(action.user, state.users, state.direction)
-        : state.turn,
-    users: state.users.filter((user) => user.id !== action.user.id),
-    log: addLog(`user ${action.user.name} left 😢`, state.log),
+    turn: getNextTurn(action.user, state.users, state.direction),
+    users,
+    phase: "game",
   };
 };
 
@@ -225,9 +293,14 @@ const handleDrew = (
 const handleDiscarded = (
   state: ServerGameState,
   action: Extract<ServerAction, { type: "discard" }>
-) => {
+): ServerGameState => {
+  if (state.phase === "lobby") {
+    return state;
+  }
+
   const discardPile = new CardCollection(state.discardPile);
   const { name: discardName } = getCardValues(action.card);
+  let hasWon = false;
   const users = state.users.map((user) => {
     if (user.id === action.user.id) {
       const userHand = new Hand(user.cards);
@@ -235,13 +308,23 @@ const handleDiscarded = (
       if (userHand.hasCard(action.card)) {
         userHand.playCard(action.card);
         discardPile.addCards([action.card]);
-      }
 
+        hasWon = userHand.isEmpty();
+      }
       return { ...user, cards: [...userHand.getCards()] };
     }
 
     return user;
   });
+
+  if (hasWon) {
+    return {
+      ...state,
+      users: users,
+      phase: "gameOver",
+    };
+  }
+
   const direction =
     discardName === "Reverse"
       ? getOtherDirection(state.direction)
@@ -271,6 +354,8 @@ export const gameUpdater = (
       return handleUserEntered(deck, state, action);
     case "UserExit":
       return handleUserExited(deck, state, action);
+    case "startGame":
+      return handleStartGame(deck, state, action);
     case "draw":
       return handleDrew(deck, state, action);
     case "discard":
@@ -281,14 +366,12 @@ export const gameUpdater = (
 export const convertServerToClientState = (
   gameState: ServerGameState
 ): ClientGameState => {
-  const { log, users, discardPile, turn, direction } = gameState;
+  const { users, discardPile, deck, ...safeState } = gameState;
   return {
-    turn,
-    direction,
+    ...safeState,
     lastDiscarded: discardPile[0],
     users: users.map(({ cards, id, name }) => {
       return { id, name, cardCount: cards.length };
     }),
-    log,
   };
 };

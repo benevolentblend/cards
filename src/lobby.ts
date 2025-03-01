@@ -15,7 +15,6 @@ const responsePayloadValidator = z.object({
 
 export const getAvailableRoomId = async () => {
   let roomCode = "";
-  console.log({ roomCode });
 
   while (roomCode == "") {
     roomCode = randomCharacters(6, "ABCDEF0123456789");
