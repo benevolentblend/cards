@@ -170,7 +170,7 @@ const handleUserEntered = (
   action: Extract<ServerAction, { type: "UserEntered" }>
 ): ServerGameState => {
   const newUserHand =
-    state.phase === "lobby" ? deck.deal(HAND_SIZE) : new Hand();
+    state.phase === "game" ? deck.deal(HAND_SIZE) : new Hand();
   const isFirstPlayer = state.host.id === fakeHost.id;
   const users = [
     ...state.users,
