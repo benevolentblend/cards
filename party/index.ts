@@ -30,14 +30,15 @@ export default class Server implements Party.Server {
     // party.storage.put;
   }
   onConnect(connection: CardConnection, { request }: Party.ConnectionContext) {
-    // A websocket just connected!
-
-    // let's send a message to the connection
-    // conn.send();
     const name = new URL(request.url).searchParams.get("name") ?? "User";
     connection.setState({ name });
+
+    // Join as spectator if game is in progress, otherwise as player
+    const isGameInProgress = this.gameState.phase !== "lobby";
+    const actionType = isGameInProgress ? "SpectatorEntered" : "UserEntered";
+
     this.gameState = gameUpdater(
-      { type: "UserEntered", user: { id: connection.id, name } },
+      { type: actionType, user: { id: connection.id, name } },
       this.gameState
     );
 
@@ -47,24 +48,31 @@ export default class Server implements Party.Server {
         payload: convertServerToClientState(this.gameState),
       })
     );
-    const userId = this.gameState.users.findIndex(
+
+    // Send hand to player (spectators don't get a hand)
+    const userIndex = this.gameState.users.findIndex(
       (user) => user.id === connection.id
     );
 
-    if (userId >= 0) {
+    if (userIndex >= 0) {
       connection.send(
         JSON.stringify({
           type: "hand",
-          payload: this.gameState.users[userId].cards,
+          payload: this.gameState.users[userIndex].cards,
         })
       );
     }
   }
   onClose(connection: CardConnection) {
     const name = connection.state?.name ?? "";
+
+    // Determine if disconnecting user is a player or spectator
+    const isPlayer = this.gameState.users.some((u) => u.id === connection.id);
+    const actionType = isPlayer ? "UserExit" : "SpectatorExit";
+
     this.gameState = gameUpdater(
       {
-        type: "UserExit",
+        type: actionType,
         user: { id: connection.id, name },
       },
       this.gameState
@@ -83,29 +91,53 @@ export default class Server implements Party.Server {
       user: { id: sender.id, name },
     };
     console.log(`Received action ${action.type} from user ${sender.id}`);
-    const userIndex = this.gameState.users.findIndex(
-      (user) => user.id === action.user.id
-    );
 
-    const error = validateServerAction(action, this.gameState, userIndex);
+    // Spectator actions don't need player validation
+    const isSpectatorAction = action.type === "becomePlayer";
+    const isPlayerToSpectatorAction = action.type === "becomeSpectator";
 
-    if (error) {
-      switch (error.reason) {
-        case "userNotFound":
-          console.error(`User ${name} was not found`);
-          return;
-        case "badDiscard":
-          console.log(`User ${name} can not play card ${error.card}`);
-          sender.send(
-            JSON.stringify({
-              type: "hand",
-              payload: this.gameState.users[userIndex].cards,
-            })
-          );
-          return;
-        case "wrongTurn":
-          console.log(`It is not ${name}'s turn.`);
-          return;
+    if (isSpectatorAction) {
+      // Verify sender is actually a spectator
+      const isSpectator = this.gameState.spectators.some(
+        (s) => s.id === sender.id
+      );
+      if (!isSpectator) {
+        console.log(`${name} is not a spectator`);
+        return;
+      }
+    } else if (isPlayerToSpectatorAction) {
+      // Verify sender is actually a player
+      const isPlayer = this.gameState.users.some((u) => u.id === sender.id);
+      if (!isPlayer) {
+        console.log(`${name} is not a player`);
+        return;
+      }
+    } else {
+      // Regular player actions - validate normally
+      const userIndex = this.gameState.users.findIndex(
+        (user) => user.id === action.user.id
+      );
+
+      const error = validateServerAction(action, this.gameState, userIndex);
+
+      if (error) {
+        switch (error.reason) {
+          case "userNotFound":
+            console.error(`User ${name} was not found`);
+            return;
+          case "badDiscard":
+            console.log(`User ${name} can not play card ${error.card}`);
+            sender.send(
+              JSON.stringify({
+                type: "hand",
+                payload: this.gameState.users[userIndex].cards,
+              })
+            );
+            return;
+          case "wrongTurn":
+            console.log(`It is not ${name}'s turn.`);
+            return;
+        }
       }
     }
 
@@ -117,7 +149,12 @@ export default class Server implements Party.Server {
       })
     );
 
-    if (action.type === "draw") {
+    // Find user index after state update (may have changed)
+    const userIndex = this.gameState.users.findIndex(
+      (user) => user.id === sender.id
+    );
+
+    if (action.type === "draw" && userIndex >= 0) {
       sender.send(
         JSON.stringify({
           type: "draw",
@@ -131,13 +168,23 @@ export default class Server implements Party.Server {
 
     if (action.type === "startGame") {
       this.gameState.users.forEach((user) => {
-        const connection = this.room.getConnection(user.id)?.send(
+        this.room.getConnection(user.id)?.send(
           JSON.stringify({
             type: "hand",
             payload: user.cards,
           })
         );
       });
+    }
+
+    // Send hand to player who just became a player (empty hand in lobby)
+    if (action.type === "becomePlayer" && userIndex >= 0) {
+      sender.send(
+        JSON.stringify({
+          type: "hand",
+          payload: this.gameState.users[userIndex].cards,
+        })
+      );
     }
   }
   async onRequest(request: Party.Request) {

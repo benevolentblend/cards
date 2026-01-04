@@ -28,9 +28,12 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
   const lastDiscarded = clientState.gameState.lastDiscarded;
   const isUsersTurn =
     clientState.gameState.turn && clientState.gameState.turn.id === id;
+  const isPlayer = clientState.gameState.users.some((user) => user.id === id);
+  const isSpectator = !isPlayer;
   const otherUsers = clientState.gameState.users.filter(
     (user) => user.id !== id
   );
+  const spectatorCount = clientState.gameState.spectatorCount;
 
   const drawCard = () => {
     // Dispatch allows you to send an action!
@@ -51,7 +54,9 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
           setUsername,
           username,
           serverDispatch,
-          isHost: isHost,
+          isHost,
+          isSpectator,
+          spectatorCount,
         }}
       />
     );
@@ -70,10 +75,72 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
     );
   }
 
+  const becomeSpectator = () => serverDispatch({ type: "becomeSpectator" });
+
+  // Spectator view - can watch but not interact
+  if (isSpectator) {
+    return (
+      <>
+        <div className="bg-stone-200 text-stone-600 text-center p-2 rounded-sm mb-4">
+          Spectating {spectatorCount > 1 ? `(${spectatorCount} watching)` : ""}
+        </div>
+        {!!clientState.gameState.turn && (
+          <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
+        )}
+        <div className="flex justify-between flex-wrap">
+          {clientState.gameState.users.map((user) => (
+            <div key={user.id}>
+              {user.name}&apos;s cards
+              <div className="relative w-[155px] overflow-hidden h-[160px]">
+                {Array.from(Array(user.cardCount).keys()).map((i) => {
+                  return (
+                    <div
+                      key={i}
+                      className="absolute"
+                      style={{
+                        left: `${(i * 35) / user.cardCount}px`,
+                        top: `${(i * 20) / user.cardCount}px`,
+                        rotate: `${(i * 35) / user.cardCount}deg`,
+                      }}
+                    >
+                      <CardComponent />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-center py-6">
+          <div className="flex">
+            <CardComponent card={clientState.gameState.lastDiscarded} />
+            <CardComponent />
+          </div>
+        </div>
+        {logs === "true" && (
+          <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
+            {clientState.gameState.log.map((logEntry) => (
+              <p key={logEntry.dt} className="animate-appear text-black">
+                {logEntry.message}
+              </p>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       {!!clientState.gameState.turn && (
-        <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
+        <div className="flex justify-between items-center">
+          <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
+          {spectatorCount > 0 && (
+            <div className="text-sm text-stone-500">
+              {spectatorCount} watching
+            </div>
+          )}
+        </div>
       )}
       <div className="flex justify-between flex-wrap">
         {otherUsers.map((user) => (
@@ -132,10 +199,18 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
           );
         })}
       </div>
-      <div className="text-center">{username}</div>
+      <div className="text-center flex justify-center items-center gap-4">
+        <span>{username}</span>
+        <button
+          onClick={becomeSpectator}
+          className="text-xs text-stone-500 hover:text-stone-700 underline"
+        >
+          Leave Game
+        </button>
+      </div>
       {logs === "true" && (
         <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
-          {clientState.gameState.log.map((logEntry, i) => (
+          {clientState.gameState.log.map((logEntry) => (
             <p key={logEntry.dt} className="animate-appear text-black">
               {logEntry.message}
             </p>

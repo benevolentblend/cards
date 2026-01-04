@@ -75,18 +75,25 @@ const HAND_SIZE = 7;
 
 type WithUser<T> = T & { user: User };
 
-export type DefaultAction = { type: "UserEntered" } | { type: "UserExit" };
+export type DefaultAction =
+  | { type: "UserEntered" }
+  | { type: "UserExit" }
+  | { type: "SpectatorEntered" }
+  | { type: "SpectatorExit" };
 
 // Here are all the actions we can dispatch for a user
 type GameAction =
   | { type: "startGame" }
   | { type: "draw" }
-  | { type: "discard"; card: Card };
+  | { type: "discard"; card: Card }
+  | { type: "becomeSpectator" }
+  | { type: "becomePlayer" };
 
 // This interface holds all the information about your game
 
 export type ServerGameState = BaseGameState & {
   users: UserWithCards[];
+  spectators: User[];
   deck: Card[];
   discardPile: Card[];
 };
@@ -103,6 +110,7 @@ export type GameErrorState =
 
 export type ClientGameState = BaseGameState & {
   users: UserWithCardCount[];
+  spectatorCount: number;
   lastDiscarded: Card;
 };
 
@@ -119,6 +127,7 @@ export const initialGame = (): ServerGameState => {
     phase: "lobby",
     direction: "clockwise",
     users: [],
+    spectators: [],
     deck: deck.getCards(),
     discardPile: discardPile.getCards(),
     log: addLog("Game Created!", []),
@@ -204,20 +213,29 @@ const handleUserExited = (
       deck.addCards(user.cards);
     }
   });
-  const isLastPlayer = state.users.length < 2;
+
+  const remainingUsers = state.users.filter((user) => user.id !== action.user.id);
+  const isLastPlayer = remainingUsers.length === 0;
+  const isOnePlayerLeft = remainingUsers.length === 1;
+
+  // Reassign host if the leaving player was the host
+  const needsNewHost = state.host.id === action.user.id;
+  const newHost = isLastPlayer ? fakeHost : (needsNewHost ? remainingUsers[0] : state.host);
+
   const nextState = {
     ...state,
-    users: state.users.filter((user) => user.id !== action.user.id),
+    users: remainingUsers,
     deck: deck.getCards(),
+    host: newHost,
     log: addLog(`user ${action.user.name} left 😢`, state.log),
   };
 
+  // No players left - reset to lobby
   if (isLastPlayer) {
     return {
       ...nextState,
       phase: "lobby",
       turn: undefined,
-      host: fakeHost,
     };
   }
 
@@ -225,11 +243,21 @@ const handleUserExited = (
     return nextState;
   }
 
+  // Only 1 player left during game - they win
+  if (isOnePlayerLeft) {
+    return {
+      ...nextState,
+      phase: "gameOver",
+      turn: remainingUsers[0],
+    };
+  }
+
+  // Advance turn if it was the leaving player's turn
   const isLeavingPlayersTurn = state.turn.id === action.user.id;
   return {
     ...nextState,
     turn: isLeavingPlayersTurn
-      ? getNextTurn(action.user, state.users, state.direction)
+      ? getNextTurn(action.user, remainingUsers, state.direction)
       : state.turn,
   };
 };
@@ -343,6 +371,109 @@ const handleDiscarded = (
   };
 };
 
+const handleSpectatorEntered = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "SpectatorEntered" }>
+): ServerGameState => {
+  return {
+    ...state,
+    spectators: [...state.spectators, action.user],
+    log: addLog(`${action.user.name} is now spectating 👀`, state.log),
+  };
+};
+
+const handleSpectatorExited = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "SpectatorExit" }>
+): ServerGameState => {
+  return {
+    ...state,
+    spectators: state.spectators.filter((s) => s.id !== action.user.id),
+    log: addLog(`spectator ${action.user.name} left`, state.log),
+  };
+};
+
+const handleBecomeSpectator = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "becomeSpectator" }>
+): ServerGameState => {
+  const user = state.users.find((u) => u.id === action.user.id);
+  if (!user) return state;
+
+  // Return user's cards to deck
+  deck.addCards(user.cards);
+
+  const remainingUsers = state.users.filter((u) => u.id !== action.user.id);
+  const isOnePlayerLeft = remainingUsers.length === 1;
+  const isNoPlayersLeft = remainingUsers.length === 0;
+
+  // Reassign host if needed
+  const needsNewHost = state.host.id === action.user.id;
+  const newHost = isNoPlayersLeft ? fakeHost : (needsNewHost ? remainingUsers[0] : state.host);
+
+  const baseState = {
+    ...state,
+    users: remainingUsers,
+    spectators: [...state.spectators, { id: user.id, name: user.name }],
+    deck: deck.getCards(),
+    host: newHost,
+    log: addLog(`${action.user.name} is now spectating 👀`, state.log),
+  };
+
+  // No players left - reset to lobby
+  if (isNoPlayersLeft) {
+    return {
+      ...baseState,
+      phase: "lobby",
+      turn: undefined,
+    };
+  }
+
+  if (state.phase === "lobby") {
+    return baseState;
+  }
+
+  // Only 1 player left during game - they win
+  if (isOnePlayerLeft) {
+    return {
+      ...baseState,
+      phase: "gameOver",
+      turn: remainingUsers[0],
+    };
+  }
+
+  // Advance turn if it was this player's turn
+  const wasTheirTurn = state.turn.id === action.user.id;
+  return {
+    ...baseState,
+    turn: wasTheirTurn
+      ? getNextTurn(action.user, remainingUsers, state.direction)
+      : state.turn,
+  };
+};
+
+const handleBecomePlayer = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "becomePlayer" }>
+): ServerGameState => {
+  // Only allowed in lobby phase
+  if (state.phase !== "lobby") return state;
+
+  const spectator = state.spectators.find((s) => s.id === action.user.id);
+  if (!spectator) return state;
+
+  const isFirstPlayer = state.host.id === fakeHost.id;
+
+  return {
+    ...state,
+    spectators: state.spectators.filter((s) => s.id !== action.user.id),
+    users: [...state.users, { ...spectator, cards: [] }],
+    host: isFirstPlayer ? spectator : state.host,
+    log: addLog(`${action.user.name} joined the game 🎉`, state.log),
+  };
+};
+
 export const gameUpdater = (
   action: ServerAction,
   state: ServerGameState
@@ -354,22 +485,31 @@ export const gameUpdater = (
       return handleUserEntered(deck, state, action);
     case "UserExit":
       return handleUserExited(deck, state, action);
+    case "SpectatorEntered":
+      return handleSpectatorEntered(state, action);
+    case "SpectatorExit":
+      return handleSpectatorExited(state, action);
     case "startGame":
       return handleStartGame(deck, state, action);
     case "draw":
       return handleDrew(deck, state, action);
     case "discard":
       return handleDiscarded(state, action);
+    case "becomeSpectator":
+      return handleBecomeSpectator(deck, state, action);
+    case "becomePlayer":
+      return handleBecomePlayer(state, action);
   }
 };
 
 export const convertServerToClientState = (
   gameState: ServerGameState
 ): ClientGameState => {
-  const { users, discardPile, deck, ...safeState } = gameState;
+  const { users, discardPile, deck, spectators, ...safeState } = gameState;
   return {
     ...safeState,
     lastDiscarded: discardPile[0],
+    spectatorCount: spectators.length,
     users: users.map(({ cards, id, name }) => {
       return { id, name, cardCount: cards.length };
     }),
