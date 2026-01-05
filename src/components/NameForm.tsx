@@ -1,39 +1,52 @@
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { FC, useState } from "react";
 
-interface NameForm {
+interface NameFormProps {
   username: string;
   setUsername: (username: string) => void;
 }
 
-const NameForm: FC<NameForm> = ({ username, setUsername }) => {
+const NameForm: FC<NameFormProps> = ({ username, setUsername }) => {
   const [formUsername, setFormUsername] = useState(username);
+  const hasChanges = formUsername !== username;
+
   return (
-    <form className="flex flex-col">
-      <label className="text-stone-600 text-xs font-bold" htmlFor="username">
-        Username
+    <form className="space-y-2">
+      <label
+        className="text-stone-600 text-sm font-medium flex items-center gap-2"
+        htmlFor="username"
+      >
+        <span>✏️</span>
+        <span>Your Name</span>
       </label>
-      <div className="flex gap-2 py-2">
+      <div className="flex gap-2">
         <input
           type="text"
           value={formUsername}
           onChange={(e) => setFormUsername(e.currentTarget.value)}
-          className="border border-black p-2 flex-grow"
+          className="border-2 border-stone-200 rounded-lg px-3 py-2 flex-grow
+            focus:border-emerald-400 focus:outline-none transition-colors
+            placeholder:text-stone-400"
+          placeholder="Enter your name..."
           name="username"
           id="username"
         />
-        <div className="w-20">
-          <button
-            className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:cursor-pointer w-full h-full"
-            onClick={(e) => {
-              e.preventDefault();
-              console.log({ formUsername });
+        <button
+          className={`rounded-lg px-4 py-2 font-medium text-sm transition-all duration-200
+            ${
+              hasChanges
+                ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+                : "bg-stone-200 text-stone-400 cursor-not-allowed"
+            }`}
+          disabled={!hasChanges}
+          onClick={(e) => {
+            e.preventDefault();
+            if (hasChanges) {
               setUsername(formUsername);
-            }}
-          >
-            Save
-          </button>
-        </div>
+            }
+          }}
+        >
+          Save
+        </button>
       </div>
     </form>
   );
