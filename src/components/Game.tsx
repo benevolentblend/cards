@@ -161,6 +161,8 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
           isHost,
           isSpectator,
           winner,
+          username,
+          setUsername,
         }}
       />
     );

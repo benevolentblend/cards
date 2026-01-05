@@ -1,10 +1,13 @@
 import { FC } from "react";
 import { Action, User } from "../../game/logic";
+import NameForm from "./NameForm";
 
 interface GameOverProps {
   isHost: boolean;
   isSpectator: boolean;
   winner: User;
+  username: string;
+  setUsername: (username: string) => void;
   serverDispatch: (action: Action) => void;
 }
 
@@ -13,6 +16,8 @@ const GameOver: FC<GameOverProps> = ({
   isHost,
   isSpectator,
   winner,
+  username,
+  setUsername,
 }) => {
   const startGame = () => serverDispatch({ type: "startGame" });
   const joinGame = () => serverDispatch({ type: "becomePlayer" });
@@ -48,7 +53,11 @@ const GameOver: FC<GameOverProps> = ({
         </span>
       </div>
 
-      <div className="pt-4 space-y-3">
+      <div className="border-t border-stone-200 pt-4">
+        <NameForm username={username} setUsername={setUsername} />
+      </div>
+
+      <div className="pt-2 space-y-3">
         {isSpectator ? (
           <div className="space-y-3">
             <div className="bg-stone-100 rounded-lg p-3">
