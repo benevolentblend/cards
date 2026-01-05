@@ -5,6 +5,7 @@ A real-time multiplayer card game (similar to UNO) built with Next.js and PartyK
 ## Tech Stack
 
 - **Frontend**: Next.js (Pages Router), React, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui (Radix UI primitives with Tailwind styling)
 - **Backend**: PartyKit (WebSocket server for real-time multiplayer)
 - **Icons**: Lucide React
 
@@ -13,6 +14,7 @@ A real-time multiplayer card game (similar to UNO) built with Next.js and PartyK
 ```
 src/
   components/     # React components (Game, Card, GameLobby, GameOver, etc.)
+  components/ui/  # shadcn/ui components (Button, etc.)
   hooks/          # Custom hooks (useGameRoom, useLocalStorage)
   pages/          # Next.js pages
   styles/         # Global CSS

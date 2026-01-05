@@ -474,10 +474,15 @@ const handleBecomePlayer = (
   if (state.phase !== "lobby" && state.phase !== "gameOver") return state;
 
   const spectator = state.spectators.find((s) => s.id === action.user.id);
+  const needsNewHost = state.host.id === fakeHost.id;
+
   if (!spectator) return state;
+
+  const newHost = needsNewHost ? spectator : state.host;
 
   return {
     ...state,
+    host: newHost,
     spectators: state.spectators.filter((s) => s.id !== action.user.id),
     users: [...state.users, { ...spectator, cards: [] }],
     log: addLog(`${action.user.name} joined the game 🎉`, state.log),

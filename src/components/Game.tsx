@@ -1,26 +1,34 @@
-import { CardWithId, useGameRoom } from "@/hooks/useGameRoom";
+import { CardWithId } from "@/hooks/useGameRoom";
 import CardComponent from "./Card";
 import { canBeDiscarded } from "@/utils";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
 import GameLobby from "./GameLobby";
 import GameOver from "./GameOver";
-import { FC } from "react";
+import { Dispatch, FC } from "react";
 import Opponent from "./Opponent";
+import { Action, ClientAction, ClientGameState } from "../../game/logic";
+
+interface ClientState {
+  gameState: ClientGameState | null;
+  hand: CardWithId[];
+}
 
 interface GameProps {
   username: string;
   setUsername: (username: string) => void;
-  roomId: string;
   id: string;
+  clientState: ClientState;
+  serverDispatch: (action: Action) => void;
+  clientDispatch: Dispatch<ClientAction>;
 }
 
-const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
-  const { clientState, serverDispatch, clientDispatch } = useGameRoom(
-    username,
-    id,
-    roomId
-  );
-  const [logs] = useLocalStorage("logs", "false");
+const Game: FC<GameProps> = ({
+  username,
+  setUsername,
+  id,
+  clientState,
+  serverDispatch,
+  clientDispatch,
+}) => {
 
   if (clientState.gameState === null) {
     return (
@@ -229,21 +237,6 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
         </>
       )}
 
-      {logs === "true" && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mt-4">
-          <p className="text-xs text-amber-700 font-medium mb-2">Game Log</p>
-          <div className="space-y-1">
-            {clientState.gameState.log.map((logEntry) => (
-              <p
-                key={logEntry.dt}
-                className="text-sm text-amber-900 animate-appear"
-              >
-                {logEntry.message}
-              </p>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
