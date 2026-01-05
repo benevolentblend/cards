@@ -1,8 +1,11 @@
 import { FC } from "react";
 import { Action, User } from "../../game/logic";
 import NameForm from "./NameForm";
+import PlayerList from "./PlayerList";
 
 interface GameOverProps {
+  otherUsers: User[];
+  hostId: string;
   isHost: boolean;
   isSpectator: boolean;
   winner: User;
@@ -12,6 +15,8 @@ interface GameOverProps {
 }
 
 const GameOver: FC<GameOverProps> = ({
+  otherUsers,
+  hostId,
   serverDispatch,
   isHost,
   isSpectator,
@@ -21,8 +26,10 @@ const GameOver: FC<GameOverProps> = ({
 }) => {
   const startGame = () => serverDispatch({ type: "startGame" });
   const joinGame = () => serverDispatch({ type: "becomePlayer" });
+  const becomeSpectator = () => serverDispatch({ type: "becomeSpectator" });
 
   const initial = winner.name.charAt(0).toUpperCase() || "?";
+  const canStartGame = otherUsers.length >= 1;
 
   return (
     <div className="text-center space-y-6 py-4">
@@ -52,6 +59,7 @@ const GameOver: FC<GameOverProps> = ({
           🎊
         </span>
       </div>
+      <PlayerList {...{ isHost, isSpectator, hostId, otherUsers, username }} />
 
       <div className="border-t border-stone-200 pt-4">
         <NameForm username={username} setUsername={setUsername} />
@@ -77,11 +85,15 @@ const GameOver: FC<GameOverProps> = ({
             {isHost ? (
               <button
                 onClick={startGame}
-                className="w-full rounded-xl p-4 bg-gradient-to-r from-amber-400 to-orange-500
-                  text-stone-900 font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02]
-                  active:scale-[0.98] transition-all duration-200"
+                disabled={!canStartGame}
+                className={`w-full rounded-xl p-4 font-semibold shadow-lg transition-all duration-200
+                ${
+                  canStartGame
+                    ? "bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                    : "bg-stone-200 text-stone-400 cursor-not-allowed"
+                }`}
               >
-                🎲 Play Again
+                {canStartGame ? "🎲 Play Again " : "⏳ Waiting for players..."}
               </button>
             ) : (
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
@@ -90,6 +102,13 @@ const GameOver: FC<GameOverProps> = ({
                 </p>
               </div>
             )}
+            <button
+              onClick={becomeSpectator}
+              className="w-full rounded-lg p-3 bg-stone-100 text-stone-600 text-sm
+              hover:bg-stone-200 transition-all duration-200"
+            >
+              👀 Become Spectator
+            </button>
           </div>
         )}
       </div>

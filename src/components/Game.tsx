@@ -74,6 +74,8 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
     return (
       <GameOver
         {...{
+          hostId,
+          otherUsers,
           serverDispatch,
           isHost,
           isSpectator,
@@ -151,7 +153,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       </div>
 
       <div className="flex justify-center py-6">
-        <div className="flex gap-4 items-start h-55 w-55">
+        <div className="flex gap-4 items-start justify-center h-55 w-55">
           <div className="text-center">
             <p className="text-xs text-stone-500 mb-2">Discard Pile</p>
             <div className="transform hover:scale-105 transition-transform">
