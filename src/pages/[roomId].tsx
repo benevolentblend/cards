@@ -29,8 +29,7 @@ export default function Home() {
   const roomId = router.query.roomId;
 
   return (
-    <Layout>
-      <RoomCode code={roomId} />
+    <Layout topRight={<RoomCode code={roomId} />}>
       <Game {...{ roomId, username, setUsername, id }} />
     </Layout>
   );
