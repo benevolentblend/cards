@@ -16,6 +16,7 @@ const addLog = (
 export interface User {
   id: string;
   name: string;
+  disconnected: boolean;
 }
 
 export interface UserWithCards extends User {
@@ -32,9 +33,9 @@ type Direction = "clockwise" | "counterclockwise";
 const fakeHost = {
   id: "fakehost",
   name: "",
+  disconnected: true,
 };
 
-// Do not change this! Every game has a list of users and log of actions
 type BaseGameState =
   | {
       turn?: User;
@@ -78,6 +79,8 @@ type WithUser<T> = T & { user: User };
 export type DefaultAction =
   | { type: "UserEntered" }
   | { type: "UserExit" }
+  | { type: "UserDisconnected" }
+  | { type: "UserReconnected" }
   | { type: "SpectatorEntered" }
   | { type: "SpectatorExit" };
 
@@ -87,12 +90,14 @@ type GameAction =
   | { type: "draw" }
   | { type: "discard"; card: Card }
   | { type: "becomeSpectator" }
-  | { type: "becomePlayer" };
+  | { type: "becomePlayer" }
+  | { type: "kickPlayer"; targetUserId: string };
 
 // This interface holds all the information about your game
 
 export type ServerGameState = BaseGameState & {
   users: UserWithCards[];
+  disconnectedUsers: UserWithCards[];
   spectators: User[];
   deck: Card[];
   discardPile: Card[];
@@ -127,6 +132,7 @@ export const initialGame = (): ServerGameState => {
     phase: "lobby",
     direction: "clockwise",
     users: [],
+    disconnectedUsers: [],
     spectators: [],
     deck: deck.getCards(),
     discardPile: discardPile.getCards(),
@@ -207,27 +213,31 @@ const handleUserExited = (
   state: ServerGameState,
   action: Extract<ServerAction, { type: "UserExit" }>
 ): ServerGameState => {
-  // Add users cards back to the deck
-  state.users.forEach((user) => {
-    if (user.id === action.user.id) {
-      deck.addCards(user.cards);
-    }
-  });
-
-  const remainingUsers = state.users.filter((user) => user.id !== action.user.id);
+  const remainingUsers = state.users.filter(
+    (user) => user.id !== action.user.id && !user.disconnected
+  );
   const isLastPlayer = remainingUsers.length === 0;
-  const isOnePlayerLeft = remainingUsers.length === 1;
 
   // Reassign host if the leaving player was the host
   const needsNewHost = state.host.id === action.user.id;
-  const newHost = isLastPlayer ? fakeHost : (needsNewHost ? remainingUsers[0] : state.host);
+  const newHost = isLastPlayer
+    ? fakeHost
+    : needsNewHost
+    ? remainingUsers[0]
+    : state.host;
+
+  let log = addLog(`user ${action.user.name} left 😢`, state.log);
+
+  if (needsNewHost) {
+    log = addLog(`user ${newHost.name} promoted to host`, state.log);
+  }
 
   const nextState = {
     ...state,
     users: remainingUsers,
     deck: deck.getCards(),
     host: newHost,
-    log: addLog(`user ${action.user.name} left 😢`, state.log),
+    log: log,
   };
 
   // No players left - reset to lobby
@@ -241,15 +251,6 @@ const handleUserExited = (
 
   if (state.phase === "lobby") {
     return nextState;
-  }
-
-  // Only 1 player left during game - they win
-  if (isOnePlayerLeft) {
-    return {
-      ...nextState,
-      phase: "gameOver",
-      turn: remainingUsers[0],
-    };
   }
 
   // Advance turn if it was the leaving player's turn
@@ -267,6 +268,11 @@ const handleStartGame = (
   state: ServerGameState,
   action: Extract<ServerAction, { type: "startGame" }>
 ): ServerGameState => {
+  // Need at least 2 players to start
+  if (state.users.length < 2) {
+    return state;
+  }
+
   state.users.forEach((user) => {
     deck.addCards(user.cards);
   });
@@ -410,12 +416,19 @@ const handleBecomeSpectator = (
 
   // Reassign host if needed
   const needsNewHost = state.host.id === action.user.id;
-  const newHost = isNoPlayersLeft ? fakeHost : (needsNewHost ? remainingUsers[0] : state.host);
+  const newHost = isNoPlayersLeft
+    ? fakeHost
+    : needsNewHost
+    ? remainingUsers[0]
+    : state.host;
 
   const baseState = {
     ...state,
     users: remainingUsers,
-    spectators: [...state.spectators, { id: user.id, name: user.name }],
+    spectators: [
+      ...state.spectators,
+      { id: user.id, name: user.name, disconnected: false },
+    ],
     deck: deck.getCards(),
     host: newHost,
     log: addLog(`${action.user.name} is now spectating 👀`, state.log),
@@ -457,21 +470,139 @@ const handleBecomePlayer = (
   state: ServerGameState,
   action: Extract<ServerAction, { type: "becomePlayer" }>
 ): ServerGameState => {
-  // Only allowed in lobby phase
-  if (state.phase !== "lobby") return state;
+  // Only allowed in lobby or gameOver phase
+  if (state.phase !== "lobby" && state.phase !== "gameOver") return state;
 
   const spectator = state.spectators.find((s) => s.id === action.user.id);
   if (!spectator) return state;
-
-  const isFirstPlayer = state.host.id === fakeHost.id;
 
   return {
     ...state,
     spectators: state.spectators.filter((s) => s.id !== action.user.id),
     users: [...state.users, { ...spectator, cards: [] }],
-    host: isFirstPlayer ? spectator : state.host,
     log: addLog(`${action.user.name} joined the game 🎉`, state.log),
   };
+};
+
+const handleUserDisconnected = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "UserDisconnected" }>
+): ServerGameState => {
+  const user = state.users.find((u) => u.id === action.user.id);
+  if (!user) return state;
+
+  const remainingUsers = state.users.filter(
+    (u) => u.id !== action.user.id && !u.disconnected
+  );
+  const isNoPlayersLeft = remainingUsers.length === 0;
+  const needsNewHost = state.host.id === action.user.id;
+  const newHost = isNoPlayersLeft
+    ? fakeHost
+    : needsNewHost
+    ? remainingUsers[0]
+    : state.host;
+
+  const updatedUsers = state.users.map((user) => {
+    const isDisconnectedUser = user.id === action.user.id;
+
+    return {
+      ...user,
+      disconnected: isDisconnectedUser ? true : user.disconnected,
+    };
+  });
+
+  // Move user to disconnected list, keep their cards
+  // Don't end the game - give them a chance to reconnect
+  return {
+    ...state,
+    users: updatedUsers,
+    disconnectedUsers: [...state.disconnectedUsers, user],
+    host: newHost,
+    log: addLog(`${action.user.name} disconnected`, state.log),
+  };
+};
+
+const handleUserReconnected = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "UserReconnected" }>
+): ServerGameState => {
+  const disconnectedUser = state.disconnectedUsers.find(
+    (u) => u.id === action.user.id
+  );
+  if (!disconnectedUser) return state;
+
+  const updatedUsers = state.users.map((user) => {
+    const isReconnectedUser = user.id === action.user.id;
+
+    return {
+      ...user,
+      disconnected: isReconnectedUser ? false : user.disconnected,
+    };
+  });
+
+  return {
+    ...state,
+    users: updatedUsers,
+    disconnectedUsers: state.disconnectedUsers.filter(
+      (u) => u.id !== action.user.id
+    ),
+    log: addLog(`${action.user.name} reconnected 🔄`, state.log),
+  };
+};
+
+const handleKickPlayer = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: "kickPlayer" }>
+): ServerGameState => {
+  const isInGame = state.phase === "game";
+
+  // Only host can kick
+  if (action.user.id !== state.host.id) return state;
+
+  const targetId = action.targetUserId;
+  const disconnectedUser = state.disconnectedUsers.find(
+    (u) => u.id === targetId
+  );
+
+  if (!disconnectedUser) return state;
+
+  const remainingUsers = state.users.filter(
+    (u) => u.id !== action.targetUserId
+  );
+  const isOnePlayerLeft = remainingUsers.length === 1;
+
+  if (isOnePlayerLeft) {
+    return {
+      ...state,
+      phase: "gameOver",
+      turn: remainingUsers[0],
+    };
+  }
+
+  // Return kicked player's cards to deck
+  deck.addCards(disconnectedUser.cards);
+
+  const wasKickedPlayersTurn =
+    isInGame && disconnectedUser.id === state.turn.id;
+
+  const nextTurn = wasKickedPlayersTurn
+    ? getNextTurn(state.turn, remainingUsers, state.direction)
+    : state.turn;
+
+  const updates: ServerGameState = {
+    ...state,
+    users: remainingUsers,
+    disconnectedUsers: state.disconnectedUsers.filter((u) => u.id !== targetId),
+    deck: deck.getCards(),
+    log: addLog(`${disconnectedUser.name} was kicked`, state.log),
+  };
+
+  if (wasKickedPlayersTurn) {
+    updates["turn"] = nextTurn;
+  }
+
+  return updates;
 };
 
 export const gameUpdater = (
@@ -485,6 +616,10 @@ export const gameUpdater = (
       return handleUserEntered(deck, state, action);
     case "UserExit":
       return handleUserExited(deck, state, action);
+    case "UserDisconnected":
+      return handleUserDisconnected(state, action);
+    case "UserReconnected":
+      return handleUserReconnected(state, action);
     case "SpectatorEntered":
       return handleSpectatorEntered(state, action);
     case "SpectatorExit":
@@ -499,19 +634,37 @@ export const gameUpdater = (
       return handleBecomeSpectator(deck, state, action);
     case "becomePlayer":
       return handleBecomePlayer(state, action);
+    case "kickPlayer":
+      return handleKickPlayer(deck, state, action);
   }
 };
 
 export const convertServerToClientState = (
   gameState: ServerGameState
 ): ClientGameState => {
-  const { users, discardPile, deck, spectators, ...safeState } = gameState;
+  const {
+    users,
+    disconnectedUsers,
+    discardPile,
+    deck,
+    spectators,
+    ...safeState
+  } = gameState;
+
+  // Combine active and disconnected users, marking disconnected ones
+  const allUsers: UserWithCardCount[] = [
+    ...users.map(({ cards, id, name, disconnected }) => ({
+      id,
+      name,
+      cardCount: cards.length,
+      disconnected: disconnected,
+    })),
+  ];
+
   return {
     ...safeState,
     lastDiscarded: discardPile[0],
     spectatorCount: spectators.length,
-    users: users.map(({ cards, id, name }) => {
-      return { id, name, cardCount: cards.length };
-    }),
+    users: allUsers,
   };
 };

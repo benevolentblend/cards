@@ -69,6 +69,7 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
         {...{
           serverDispatch,
           isHost,
+          isSpectator,
           winner,
         }}
       />
@@ -77,61 +78,14 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
 
   const becomeSpectator = () => serverDispatch({ type: "becomeSpectator" });
 
-  // Spectator view - can watch but not interact
-  if (isSpectator) {
-    return (
-      <>
+  return (
+    <>
+      {isSpectator && (
         <div className="bg-stone-200 text-stone-600 text-center p-2 rounded-sm mb-4">
           Spectating {spectatorCount > 1 ? `(${spectatorCount} watching)` : ""}
         </div>
-        {!!clientState.gameState.turn && (
-          <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
-        )}
-        <div className="flex justify-between flex-wrap">
-          {clientState.gameState.users.map((user) => (
-            <div key={user.id}>
-              {user.name}&apos;s cards
-              <div className="relative w-[155px] overflow-hidden h-[160px]">
-                {Array.from(Array(user.cardCount).keys()).map((i) => {
-                  return (
-                    <div
-                      key={i}
-                      className="absolute"
-                      style={{
-                        left: `${(i * 35) / user.cardCount}px`,
-                        top: `${(i * 20) / user.cardCount}px`,
-                        rotate: `${(i * 35) / user.cardCount}deg`,
-                      }}
-                    >
-                      <CardComponent />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-center py-6">
-          <div className="flex">
-            <CardComponent card={clientState.gameState.lastDiscarded} />
-            <CardComponent />
-          </div>
-        </div>
-        {logs === "true" && (
-          <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
-            {clientState.gameState.log.map((logEntry) => (
-              <p key={logEntry.dt} className="animate-appear text-black">
-                {logEntry.message}
-              </p>
-            ))}
-          </div>
-        )}
-      </>
-    );
-  }
-
-  return (
-    <>
+      )}
+      <div>Host: {clientState.gameState.host.name}</div>
       {!!clientState.gameState.turn && (
         <div className="flex justify-between items-center">
           <div>Its {clientState.gameState.turn.name}&apos;s Turn</div>
@@ -144,8 +98,26 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
       )}
       <div className="flex justify-between flex-wrap">
         {otherUsers.map((user) => (
-          <div key={user.id}>
-            {user.name}&apos;s cards
+          <div key={user.id} className={user.disconnected ? "opacity-50" : ""}>
+            <div className="flex items-center gap-2">
+              <span>{user.name}&apos;s cards</span>
+              {user.disconnected && (
+                <span className="text-xs text-red-500">(disconnected)</span>
+              )}
+              {user.disconnected && isHost && (
+                <button
+                  onClick={() =>
+                    serverDispatch({
+                      type: "kickPlayer",
+                      targetUserId: user.id,
+                    })
+                  }
+                  className="text-xs text-red-600 hover:text-red-800 underline"
+                >
+                  Kick
+                </button>
+              )}
+            </div>
             <div className="relative w-[155px] overflow-hidden h-[160px]">
               {Array.from(Array(user.cardCount).keys()).map((i) => {
                 return (
@@ -182,32 +154,36 @@ const Game = ({ username, setUsername, id, roomId }: GameProps) => {
           </CardComponent>
         </div>
       </div>
-      <div className="flex flex-wrap justify-center pb-4">
-        {clientState.hand.map(({ card, id }) => {
-          const cardCanBeDiscarded = canBeDiscarded(lastDiscarded, card);
-          return (
-            <CardComponent key={id} card={card}>
-              {isUsersTurn && cardCanBeDiscarded && (
-                <button
-                  className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:cursor-pointer"
-                  onClick={() => discardCard({ card, id })}
-                >
-                  Play
-                </button>
-              )}
-            </CardComponent>
-          );
-        })}
-      </div>
-      <div className="text-center flex justify-center items-center gap-4">
-        <span>{username}</span>
-        <button
-          onClick={becomeSpectator}
-          className="text-xs text-stone-500 hover:text-stone-700 underline"
-        >
-          Leave Game
-        </button>
-      </div>
+      {!isSpectator && (
+        <>
+          <div className="flex flex-wrap justify-center pb-4">
+            {clientState.hand.map(({ card, id }) => {
+              const cardCanBeDiscarded = canBeDiscarded(lastDiscarded, card);
+              return (
+                <CardComponent key={id} card={card}>
+                  {isUsersTurn && cardCanBeDiscarded && (
+                    <button
+                      className="bg-black rounded-sm p-2 inline-block shadow-sm text-xs text-stone-50 hover:cursor-pointer"
+                      onClick={() => discardCard({ card, id })}
+                    >
+                      Play
+                    </button>
+                  )}
+                </CardComponent>
+              );
+            })}
+          </div>
+          <div className="text-center flex justify-center items-center gap-4">
+            <span>{username}</span>
+            <button
+              onClick={becomeSpectator}
+              className="text-xs text-stone-500 hover:text-stone-700 underline"
+            >
+              Leave Game
+            </button>
+          </div>
+        </>
+      )}
       {logs === "true" && (
         <div className="bg-yellow-100 flex flex-col p-4 rounded-sm text-sm">
           {clientState.gameState.log.map((logEntry) => (

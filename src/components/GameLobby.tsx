@@ -24,6 +24,8 @@ const GameLobby: FC<GameLobbyProps> = ({
   const startGame = () => serverDispatch({ type: "startGame" });
   const joinGame = () => serverDispatch({ type: "becomePlayer" });
   const becomeSpectator = () => serverDispatch({ type: "becomeSpectator" });
+  // Need at least 2 players (current user + at least 1 other)
+  const canStartGame = otherUsers.length >= 1;
 
   return (
     <>
@@ -54,9 +56,10 @@ const GameLobby: FC<GameLobbyProps> = ({
             <div>
               <button
                 onClick={startGame}
+                disabled={!canStartGame}
                 className="w-full disabled:opacity-50 rounded-sm border p-5 bg-yellow-400 group text-black shadow-sm enabled:hover:shadow-lg enabled:hover:cursor-pointer transition-all duration-200"
               >
-                Start Game
+                {canStartGame ? "Start Game" : "Waiting for players..."}
               </button>
             </div>
           )}

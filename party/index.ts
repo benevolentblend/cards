@@ -33,14 +33,33 @@ export default class Server implements Party.Server {
     const name = new URL(request.url).searchParams.get("name") ?? "User";
     connection.setState({ name });
 
-    // Join as spectator if game is in progress, otherwise as player
-    const isGameInProgress = this.gameState.phase !== "lobby";
-    const actionType = isGameInProgress ? "SpectatorEntered" : "UserEntered";
-
-    this.gameState = gameUpdater(
-      { type: actionType, user: { id: connection.id, name } },
-      this.gameState
+    // Check if this user is reconnecting (was disconnected during a game)
+    const isReconnecting = this.gameState.disconnectedUsers.some(
+      (u) => u.id === connection.id
     );
+
+    if (isReconnecting) {
+      // Restore the disconnected user
+      this.gameState = gameUpdater(
+        {
+          type: "UserReconnected",
+          user: { id: connection.id, name, disconnected: false },
+        },
+        this.gameState
+      );
+    } else {
+      // Join as spectator if game is in progress, otherwise as player
+      const isGameInProgress = this.gameState.phase !== "lobby";
+      const actionType = isGameInProgress ? "SpectatorEntered" : "UserEntered";
+
+      this.gameState = gameUpdater(
+        {
+          type: actionType,
+          user: { id: connection.id, name, disconnected: false },
+        },
+        this.gameState
+      );
+    }
 
     this.room.broadcast(
       JSON.stringify({
@@ -68,12 +87,27 @@ export default class Server implements Party.Server {
 
     // Determine if disconnecting user is a player or spectator
     const isPlayer = this.gameState.users.some((u) => u.id === connection.id);
-    const actionType = isPlayer ? "UserExit" : "SpectatorExit";
+    const isSpectator = this.gameState.spectators.some(
+      (s) => s.id === connection.id
+    );
+    const isGameActive = this.gameState.phase === "game";
+
+    let actionType: "UserExit" | "UserDisconnected" | "SpectatorExit";
+    if (isPlayer) {
+      // During active game, mark as disconnected (can reconnect)
+      // In lobby or game over, just exit normally
+      actionType = isGameActive ? "UserDisconnected" : "UserExit";
+    } else if (isSpectator) {
+      actionType = "SpectatorExit";
+    } else {
+      // User not found in either list, nothing to do
+      return;
+    }
 
     this.gameState = gameUpdater(
       {
         type: actionType,
-        user: { id: connection.id, name },
+        user: { id: connection.id, name, disconnected: true },
       },
       this.gameState
     );
@@ -88,13 +122,14 @@ export default class Server implements Party.Server {
     const name = sender.state?.name ?? "";
     const action: ServerAction = {
       ...(JSON.parse(message) as Action),
-      user: { id: sender.id, name },
+      user: { id: sender.id, name, disconnected: false },
     };
     console.log(`Received action ${action.type} from user ${sender.id}`);
 
     // Spectator actions don't need player validation
     const isSpectatorAction = action.type === "becomePlayer";
     const isPlayerToSpectatorAction = action.type === "becomeSpectator";
+    const isHostAction = action.type === "kickPlayer";
 
     if (isSpectatorAction) {
       // Verify sender is actually a spectator
@@ -110,6 +145,12 @@ export default class Server implements Party.Server {
       const isPlayer = this.gameState.users.some((u) => u.id === sender.id);
       if (!isPlayer) {
         console.log(`${name} is not a player`);
+        return;
+      }
+    } else if (isHostAction) {
+      // Verify sender is the host
+      if (sender.id !== this.gameState.host.id) {
+        console.log(`${name} is not the host`);
         return;
       }
     } else {
