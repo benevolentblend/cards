@@ -1,5 +1,6 @@
 import { FC, useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface RoomCodeProps {
   code: string;
@@ -19,15 +20,7 @@ const RoomCode: FC<RoomCodeProps> = ({ code }) => {
       <span className="text-emerald-100 text-sm">
         <span className="font-mono font-semibold">{code}</span>
       </span>
-      <button
-        onClick={copyToClipboard}
-        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium
-          transition-all duration-200 ${
-            copied
-              ? "bg-green-500 text-white"
-              : "bg-amber-100 text-stone-800 hover:bg-amber-200"
-          }`}
-      >
+      <Button onClick={copyToClipboard} variant="secondary" size="sm">
         {copied ? (
           <>
             <Check className="w-3 h-3" />
@@ -39,7 +32,7 @@ const RoomCode: FC<RoomCodeProps> = ({ code }) => {
             <span>Copy</span>
           </>
         )}
-      </button>
+      </Button>
     </div>
   );
 };

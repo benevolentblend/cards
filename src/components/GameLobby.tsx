@@ -5,6 +5,7 @@ import NameForm from "./NameForm";
 interface GameLobbyProps {
   otherUsers: User[];
   username: string;
+  hostId: string;
   isHost: boolean;
   isSpectator: boolean;
   spectatorCount: number;
@@ -54,6 +55,7 @@ const GameLobby: FC<GameLobbyProps> = ({
   username,
   setUsername,
   isHost,
+  hostId,
   isSpectator,
   spectatorCount,
 }) => {
@@ -74,10 +76,19 @@ const GameLobby: FC<GameLobbyProps> = ({
 
       <div className="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl p-6 border border-emerald-200">
         <div className="flex flex-wrap justify-center gap-6">
-          {!isSpectator && <PlayerAvatar name={username || "You"} isHost={isHost} />}
-          {otherUsers.map((user) => (
-            <PlayerAvatar key={user.id} name={user.name} />
-          ))}
+          {!isSpectator && (
+            <PlayerAvatar name={username || "You"} isHost={isHost} />
+          )}
+          {otherUsers.map((user) => {
+            const playerIsHost = user.id === hostId;
+            return (
+              <PlayerAvatar
+                key={user.id}
+                name={user.name}
+                isHost={playerIsHost}
+              />
+            );
+          })}
           {totalPlayers === 0 && (
             <p className="text-stone-500 italic">No players yet...</p>
           )}

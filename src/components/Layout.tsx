@@ -18,11 +18,9 @@ const Layout = ({ children, topRight }: LayoutProps) => {
           <h1 className="text-3xl font-bold text-amber-100 drop-shadow-lg tracking-wide">
             🃏 Card Game
           </h1>
-          <div className="flex-1 flex justify-end">
-            {topRight}
-          </div>
+          <div className="flex-1 flex justify-end">{topRight}</div>
         </header>
-        <section className="rounded-2xl p-6 shadow-2xl bg-gradient-to-b from-amber-50 to-amber-100 border-4 border-amber-200 w-full">
+        <section className="rounded-2xl p-4 shadow-2xl bg-gradient-to-b from-amber-50 to-amber-100 border-4 border-amber-200 w-full">
           {children}
         </section>
         <footer className="text-center mt-4 text-emerald-300 text-sm opacity-75">

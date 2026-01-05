@@ -88,12 +88,6 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
   };
 
   const renderCornerContent = () => {
-    if (name === "Skip") {
-      return <SkipForward className="w-3 h-3" />;
-    }
-    if (name === "Reverse") {
-      return <RefreshCw className="w-3 h-3" />;
-    }
     return name;
   };
 
