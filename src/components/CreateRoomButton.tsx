@@ -1,6 +1,7 @@
 import { getAvailableRoomId } from "@/lobby";
 import { useRouter } from "next/router";
 import { FC, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface CreateRoomButtonProps {
   disabled?: boolean;
@@ -23,13 +24,16 @@ const CreateRoomButton: FC<CreateRoomButtonProps> = ({ disabled = false }) => {
   };
 
   return (
-    <button
+    <Button
       disabled={disabled || code === ""}
       onClick={onClick}
-      className="w-full disabled:opacity-50 rounded-sm border p-5 bg-yellow-400 group text-black shadow-sm enabled:hover:shadow-lg enabled:hover:cursor-pointer transition-all duration-200"
+      size="lg"
+      className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 font-semibold
+        shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
+        disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-lg"
     >
       Create Room
-    </button>
+    </Button>
   );
 };
 

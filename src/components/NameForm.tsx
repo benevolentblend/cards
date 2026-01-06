@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useState, useEffect } from "react";
 
 interface NameFormProps {
   username: string;
@@ -7,6 +7,11 @@ interface NameFormProps {
 
 const NameForm: FC<NameFormProps> = ({ username, setUsername }) => {
   const [formUsername, setFormUsername] = useState(username);
+
+  // Sync form state when username prop changes (e.g., after localStorage hydration)
+  useEffect(() => {
+    setFormUsername(username);
+  }, [username]);
   const hasChanges = formUsername !== username;
 
   return (

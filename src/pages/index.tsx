@@ -14,14 +14,13 @@ interface GameSetup {
 export default function Home() {
   const [id] = useLocalStorage("id", uuid());
   const [username, setUsername] = useLocalStorage("username", "");
-  console.log({ username }, "From index.tsx");
 
   return (
     <Layout>
       <h1 className="text-2xl pb-5">Cards</h1>
 
       <NameForm {...{ username, setUsername }} />
-      <div className="flex-col">
+      <div className="flex-col pt-2">
         <CreateRoomButton disabled={username === ""} />
       </div>
     </Layout>

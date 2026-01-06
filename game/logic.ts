@@ -320,7 +320,6 @@ const handleDrew = (
         ? user
         : { ...user, cards: [...user.cards, drawnCard] }
     ),
-    log: addLog(`user ${action.user.name} drew a card!`, log),
   };
 };
 

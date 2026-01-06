@@ -2,6 +2,12 @@ import { FC } from "react";
 import { Action, User } from "../../game/logic";
 import NameForm from "./NameForm";
 import PlayerList from "./PlayerList";
+import Logs from "./Logs";
+
+interface LogEntry {
+  dt: number;
+  message: string;
+}
 
 interface GameLobbyProps {
   otherUsers: User[];
@@ -12,6 +18,7 @@ interface GameLobbyProps {
   spectatorCount: number;
   serverDispatch: (action: Action) => void;
   setUsername: (username: string) => void;
+  log: LogEntry[];
 }
 
 const GameLobby: FC<GameLobbyProps> = ({
@@ -23,6 +30,7 @@ const GameLobby: FC<GameLobbyProps> = ({
   hostId,
   isSpectator,
   spectatorCount,
+  log,
 }) => {
   const startGame = () => serverDispatch({ type: "startGame" });
   const joinGame = () => serverDispatch({ type: "becomePlayer" });
@@ -95,6 +103,8 @@ const GameLobby: FC<GameLobbyProps> = ({
           </button>
         </div>
       )}
+
+      <Logs log={log} />
     </div>
   );
 };

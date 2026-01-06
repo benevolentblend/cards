@@ -2,6 +2,12 @@ import { FC } from "react";
 import { Action, User } from "../../game/logic";
 import NameForm from "./NameForm";
 import PlayerList from "./PlayerList";
+import Logs from "./Logs";
+
+interface LogEntry {
+  dt: number;
+  message: string;
+}
 
 interface GameOverProps {
   otherUsers: User[];
@@ -12,6 +18,7 @@ interface GameOverProps {
   username: string;
   setUsername: (username: string) => void;
   serverDispatch: (action: Action) => void;
+  log: LogEntry[];
 }
 
 const GameOver: FC<GameOverProps> = ({
@@ -23,6 +30,7 @@ const GameOver: FC<GameOverProps> = ({
   winner,
   username,
   setUsername,
+  log,
 }) => {
   const startGame = () => serverDispatch({ type: "startGame" });
   const joinGame = () => serverDispatch({ type: "becomePlayer" });
@@ -112,6 +120,8 @@ const GameOver: FC<GameOverProps> = ({
           </div>
         )}
       </div>
+
+      <Logs log={log} />
     </div>
   );
 };

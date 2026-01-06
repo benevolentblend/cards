@@ -6,7 +6,6 @@ import { useRouter } from "next/router";
 import { getRandomUsername } from "@/lobby";
 import { useEffect } from "react";
 import RoomCode from "@/components/RoomCode";
-import { useGameRoom } from "@/hooks/useGameRoom";
 
 export default function Home() {
   const router = useRouter();
@@ -20,14 +19,6 @@ export default function Home() {
     if (username === "") setUsername(getRandomUsername());
   }, [setUsername, username]);
 
-  const roomId =
-    typeof router.query.roomId === "string" ? router.query.roomId : "";
-  const { clientState, serverDispatch, clientDispatch } = useGameRoom(
-    username,
-    id,
-    roomId
-  );
-
   if (!router.isReady || typeof router.query.roomId !== "string") {
     return (
       <Layout>
@@ -36,20 +27,11 @@ export default function Home() {
     );
   }
 
-  const gameLogs = clientState.gameState?.log ?? [];
+  const roomId = router.query.roomId;
 
   return (
-    <Layout topRight={<RoomCode code={roomId} />} gameLogs={gameLogs}>
-      <Game
-        {...{
-          username,
-          setUsername,
-          id,
-          clientState,
-          serverDispatch,
-          clientDispatch,
-        }}
-      />
+    <Layout topRight={<RoomCode code={roomId} />}>
+      <Game {...{ username, setUsername, id, roomId }} />
     </Layout>
   );
 }

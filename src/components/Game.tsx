@@ -1,34 +1,25 @@
-import { CardWithId } from "@/hooks/useGameRoom";
+import { CardWithId, useGameRoom } from "@/hooks/useGameRoom";
 import CardComponent from "./Card";
 import { canBeDiscarded } from "@/utils";
 import GameLobby from "./GameLobby";
 import GameOver from "./GameOver";
-import { Dispatch, FC } from "react";
+import { FC } from "react";
 import Opponent from "./Opponent";
-import { Action, ClientAction, ClientGameState } from "../../game/logic";
-
-interface ClientState {
-  gameState: ClientGameState | null;
-  hand: CardWithId[];
-}
+import Logs from "./Logs";
 
 interface GameProps {
   username: string;
   setUsername: (username: string) => void;
   id: string;
-  clientState: ClientState;
-  serverDispatch: (action: Action) => void;
-  clientDispatch: Dispatch<ClientAction>;
+  roomId: string;
 }
 
-const Game: FC<GameProps> = ({
-  username,
-  setUsername,
-  id,
-  clientState,
-  serverDispatch,
-  clientDispatch,
-}) => {
+const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
+  const { clientState, serverDispatch, clientDispatch } = useGameRoom(
+    username,
+    id,
+    roomId
+  );
 
   if (clientState.gameState === null) {
     return (
@@ -72,6 +63,7 @@ const Game: FC<GameProps> = ({
           isHost,
           isSpectator,
           spectatorCount,
+          log: clientState.gameState.log,
         }}
       />
     );
@@ -90,6 +82,7 @@ const Game: FC<GameProps> = ({
           winner,
           username,
           setUsername,
+          log: clientState.gameState.log,
         }}
       />
     );
@@ -237,6 +230,7 @@ const Game: FC<GameProps> = ({
         </>
       )}
 
+      <Logs log={clientState.gameState.log} />
     </div>
   );
 };
