@@ -17,7 +17,12 @@ jobs:
           node-version: 20
           cache: "npm"
       - run: npm ci
-      - run: npx partykit deploy --var APP_URL=${{ vars.APP_URL }}
+      - name: create .env file
+        uses: SpicyPizza/create-envfile@v2.0
+        with:
+          APP_URL: ${{ vars.APP_URL }}
+      - name: Deploy PartyKit Server
+        run: npx partykit deploy
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
