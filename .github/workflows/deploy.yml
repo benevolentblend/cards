@@ -17,8 +17,7 @@ jobs:
           node-version: 20
           cache: "npm"
       - run: npm ci
-      - run: npx partykit deploy --var APP_URL=$APP_URL
+      - run: npx partykit deploy --var APP_URL=${{ vars.APP_URL }}
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
-          APP_URL: ${{ vars.APP_URL }}
