@@ -20,7 +20,7 @@ jobs:
       - name: create .env file
         uses: SpicyPizza/create-envfile@v2.0
         with:
-          APP_URL: ${{ vars.APP_URL }}
+          envkey_APP_URL: ${{ vars.APP_URL }}
       - name: Deploy PartyKit Server
         run: npx partykit deploy
         env:
