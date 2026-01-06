@@ -16,6 +16,10 @@ export default function Home() {
     getRandomUsername()
   );
 
+  useEffect(() => {
+    if (username === "") setUsername(getRandomUsername());
+  }, [setUsername, username]);
+
   const roomId =
     typeof router.query.roomId === "string" ? router.query.roomId : "";
   const { clientState, serverDispatch, clientDispatch } = useGameRoom(
@@ -23,10 +27,6 @@ export default function Home() {
     id,
     roomId
   );
-
-  useEffect(() => {
-    if (username === "") setUsername(getRandomUsername());
-  }, [setUsername, username]);
 
   if (!router.isReady || typeof router.query.roomId !== "string") {
     return (

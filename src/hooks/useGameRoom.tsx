@@ -1,5 +1,5 @@
 import usePartySocket from "partysocket/react";
-import { useReducer } from "react";
+import { useReducer, useCallback } from "react";
 import { Action, ClientGameState, ClientAction } from "../../game/logic";
 import { Card } from "../../game/Cards";
 import { v4 as uuid } from "uuid";
@@ -43,8 +43,9 @@ export const useGameRoom = (name: string, id: string, roomId: string) => {
 
   const socket = usePartySocket({
     host: process.env.NEXT_PUBLIC_PARTYKIT_HOST || "127.0.0.1:1999",
-    room: roomId,
+    room: roomId || "_",
     id,
+    startClosed: !roomId,
     onMessage(event: MessageEvent<string>) {
       clientDispatch(JSON.parse(event.data));
     },
@@ -53,9 +54,12 @@ export const useGameRoom = (name: string, id: string, roomId: string) => {
     },
   });
 
-  const serverDispatch = (action: Action) => {
-    socket.send(JSON.stringify(action));
-  };
+  const serverDispatch = useCallback(
+    (action: Action) => {
+      socket.send(JSON.stringify(action));
+    },
+    [socket]
+  );
 
   return {
     clientState,
