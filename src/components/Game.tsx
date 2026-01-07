@@ -5,11 +5,11 @@ import { canBeDiscarded, isWildCard } from '@/utils';
 
 import CardComponent from './Card';
 import ColorPicker from './ColorPicker';
-import PendingDrawIndicator from './PendingDrawIndicator';
 import GameLobby from './GameLobby';
 import GameOver from './GameOver';
 import Logs from './Logs';
 import Opponent from './Opponent';
+import PendingDrawIndicator from './PendingDrawIndicator';
 
 import type { ColorSuit } from '../../game/Cards';
 import type { CardWithId } from '@/hooks/useGameRoom';
