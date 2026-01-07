@@ -1,25 +1,23 @@
 // Based off of https://github.com/mitch-b/typedeck
 
-import { getCardValues } from "@/utils";
+import { getCardValues } from '@/utils';
 
 export type CardName =
-  | "1"
-  | "2"
-  | "3"
-  | "4"
-  | "5"
-  | "6"
-  | "7"
-  | "8"
-  | "9"
-  | "Reverse"
-  | "Skip";
+  | '1'
+  | '2'
+  | '3'
+  | '4'
+  | '5'
+  | '6'
+  | '7'
+  | '8'
+  | '9'
+  | 'Reverse'
+  | 'Skip';
 
-export type CardSuit = "R" | "B" | "G" | "Y";
+export type CardSuit = 'R' | 'B' | 'G' | 'Y';
 
 export type Card = `${CardSuit}-${CardName}`;
-
-const HAND_SIZE = 7;
 
 interface ICardCollection {
   getCards(): Card[];
@@ -60,7 +58,7 @@ export class CardCollection implements ICardCollection {
   public drawCard(): Card {
     const cards = this.getCards();
     if (cards.length < 1) {
-      throw new Error("No cards remaining");
+      throw new Error('No cards remaining');
     }
 
     return cards.shift() as Card;
@@ -96,7 +94,7 @@ export class CardCollection implements ICardCollection {
       if (position > -1) {
         this.getCards().splice(position, 1);
       } else {
-        throw new Error("Card does not exist in collection");
+        throw new Error('Card does not exist in collection');
       }
     });
     return this;
@@ -116,11 +114,11 @@ export class CardCollection implements ICardCollection {
     return this.getCount() === 0;
   }
 
-  public takeCard(front = true): Card {
+  public takeCard(): Card {
     if (!this.isEmpty()) {
       return this.getCards().shift() as Card;
     }
-    throw new Error("No cards remaining in pile");
+    throw new Error('No cards remaining in pile');
   }
 
   public takeCards(amount: number, front = false): Card[] {
@@ -128,7 +126,7 @@ export class CardCollection implements ICardCollection {
       amount = this.getCount();
     }
     // tslint:disable-next-line:prefer-const
-    let pulledCards: Card[] = [];
+    const pulledCards: Card[] = [];
     while (!this.isEmpty() && pulledCards.length < amount) {
       if (front) pulledCards.push(this.getCards().shift() as Card);
       else pulledCards.push(this.getCards().pop() as Card);
@@ -140,7 +138,7 @@ export class CardCollection implements ICardCollection {
     const cards = this.getCards();
     const length = cards.length;
     if (length < 2) {
-      throw new Error("Not enough cards to shuffle");
+      throw new Error('Not enough cards to shuffle');
     }
     for (let i = length; i; i--) {
       const n = Math.floor(Math.random() * i);
@@ -153,7 +151,7 @@ export class CardCollection implements ICardCollection {
     if (index >= 0 && index <= this.getCount() - 1) {
       return this.getCards()[index];
     } else {
-      throw new Error("Card collection does not contain card at index");
+      throw new Error('Card collection does not contain card at index');
     }
   }
 }
@@ -171,19 +169,19 @@ export class Deck extends CardCollection implements IDeck {
 
   public static Build({
     duplicates = 1,
-    suits = ["R", "B", "G", "Y"],
+    suits = ['R', 'B', 'G', 'Y'],
     cardNames = [
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "Reverse",
-      "Skip",
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      'Reverse',
+      'Skip',
     ],
   }: DeckBuildArgs) {
     const cards: Card[] = [];

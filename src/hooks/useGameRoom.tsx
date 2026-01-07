@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-named-as-default
 import usePartySocket from 'partysocket/react';
 import { useReducer, useCallback } from 'react';
 import { v4 as uuid } from 'uuid';

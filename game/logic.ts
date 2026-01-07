@@ -1,11 +1,14 @@
-import { canBeDiscarded, getCardValues } from "@/utils";
-import { CardCollection, Deck, Hand, Card } from "./Cards";
+import { canBeDiscarded, getCardValues } from '@/utils';
+
+import { CardCollection, Deck, Hand } from './Cards';
+
+import type { Card } from './Cards';
 
 // util for easy adding logs
 const addLog = (
   message: string,
-  logs: BaseGameState["log"]
-): BaseGameState["log"] => {
+  logs: BaseGameState['log']
+): BaseGameState['log'] => {
   return [{ dt: new Date().getTime(), message: message }, ...logs].slice(
     0,
     MAX_LOG_SIZE
@@ -27,19 +30,19 @@ export interface UserWithCardCount extends User {
   cardCount: number;
 }
 
-type Direction = "clockwise" | "counterclockwise";
+type Direction = 'clockwise' | 'counterclockwise';
 
 // initial host until a user is assigned
 const fakeHost = {
-  id: "fakehost",
-  name: "",
+  id: 'fakehost',
+  name: '',
   disconnected: true,
 };
 
 type BaseGameState =
   | {
       turn?: User;
-      phase: "lobby";
+      phase: 'lobby';
       host: User;
       direction: Direction;
       log: {
@@ -49,7 +52,7 @@ type BaseGameState =
     }
   | {
       turn: User;
-      phase: "game" | "gameOver";
+      phase: 'game' | 'gameOver';
       host: User;
       direction: Direction;
       log: {
@@ -65,10 +68,10 @@ export type Action = DefaultAction | GameAction;
 export type ServerAction = WithUser<DefaultAction> | WithUser<GameAction>;
 
 export type ClientAction =
-  | { type: "gameState"; payload: ClientGameState }
-  | { type: "discard"; payload: string }
-  | { type: "hand"; payload: Card[] }
-  | { type: "draw"; payload: Card };
+  | { type: 'gameState'; payload: ClientGameState }
+  | { type: 'discard'; payload: string }
+  | { type: 'hand'; payload: Card[] }
+  | { type: 'draw'; payload: Card };
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
@@ -77,21 +80,21 @@ const HAND_SIZE = 7;
 type WithUser<T> = T & { user: User };
 
 export type DefaultAction =
-  | { type: "UserEntered" }
-  | { type: "UserExit" }
-  | { type: "UserDisconnected" }
-  | { type: "UserReconnected" }
-  | { type: "SpectatorEntered" }
-  | { type: "SpectatorExit" };
+  | { type: 'UserEntered' }
+  | { type: 'UserExit' }
+  | { type: 'UserDisconnected' }
+  | { type: 'UserReconnected' }
+  | { type: 'SpectatorEntered' }
+  | { type: 'SpectatorExit' };
 
 // Here are all the actions we can dispatch for a user
 type GameAction =
-  | { type: "startGame" }
-  | { type: "draw" }
-  | { type: "discard"; card: Card }
-  | { type: "becomeSpectator" }
-  | { type: "becomePlayer" }
-  | { type: "kickPlayer"; targetUserId: string };
+  | { type: 'startGame' }
+  | { type: 'draw' }
+  | { type: 'discard'; card: Card }
+  | { type: 'becomeSpectator' }
+  | { type: 'becomePlayer' }
+  | { type: 'kickPlayer'; targetUserId: string };
 
 // This interface holds all the information about your game
 
@@ -105,13 +108,13 @@ export type ServerGameState = BaseGameState & {
 
 export type GameErrorState =
   | {
-      reason: "userNotFound";
+      reason: 'userNotFound';
     }
   | {
-      reason: "badDiscard";
+      reason: 'badDiscard';
       card: Card;
     }
-  | { reason: "wrongTurn" };
+  | { reason: 'wrongTurn' };
 
 export type ClientGameState = BaseGameState & {
   users: UserWithCardCount[];
@@ -129,14 +132,14 @@ export const initialGame = (): ServerGameState => {
   return {
     turn: undefined,
     host: fakeHost,
-    phase: "lobby",
-    direction: "clockwise",
+    phase: 'lobby',
+    direction: 'clockwise',
     users: [],
     disconnectedUsers: [],
     spectators: [],
     deck: deck.getCards(),
     discardPile: discardPile.getCards(),
-    log: addLog("Game Created!", []),
+    log: addLog('Game Created!', []),
   };
 };
 
@@ -146,18 +149,18 @@ export const validateServerAction = (
   userIndex: number
 ): GameErrorState | null => {
   if (userIndex < 0) {
-    return { reason: "userNotFound" };
+    return { reason: 'userNotFound' };
   }
 
-  if (state.phase === "game" && action.user.id !== state.turn.id) {
-    return { reason: "wrongTurn" };
+  if (state.phase === 'game' && action.user.id !== state.turn.id) {
+    return { reason: 'wrongTurn' };
   }
 
-  if (action.type === "discard") {
+  if (action.type === 'discard') {
     const lastDiscarded = state.discardPile[0];
 
     if (!canBeDiscarded(lastDiscarded, action.card))
-      return { reason: "badDiscard", card: action.card };
+      return { reason: 'badDiscard', card: action.card };
   }
 
   return null;
@@ -170,22 +173,22 @@ const getNextTurn = (
 ): User => {
   const userIndex = users.findIndex((user) => user.id === currentTurn.id);
   const userCount = users.length;
-  const move = direction === "clockwise" ? userIndex + 1 : userIndex - 1;
+  const move = direction === 'clockwise' ? userIndex + 1 : userIndex - 1;
 
   const nextIndex = ((move % userCount) + userCount) % userCount; // wrapping formula from Liam
   return users[nextIndex];
 };
 
 const getOtherDirection = (direction: Direction): Direction =>
-  direction === "clockwise" ? "counterclockwise" : "clockwise";
+  direction === 'clockwise' ? 'counterclockwise' : 'clockwise';
 
 const handleUserEntered = (
   deck: Deck,
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "UserEntered" }>
+  action: Extract<ServerAction, { type: 'UserEntered' }>
 ): ServerGameState => {
   const newUserHand =
-    state.phase === "game" ? deck.deal(HAND_SIZE) : new Hand();
+    state.phase === 'game' ? deck.deal(HAND_SIZE) : new Hand();
   const isFirstPlayer = state.host.id === fakeHost.id;
   const users = [
     ...state.users,
@@ -211,7 +214,7 @@ const handleUserEntered = (
 const handleUserExited = (
   deck: Deck,
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "UserExit" }>
+  action: Extract<ServerAction, { type: 'UserExit' }>
 ): ServerGameState => {
   const remainingUsers = state.users.filter(
     (user) => user.id !== action.user.id && !user.disconnected
@@ -223,8 +226,8 @@ const handleUserExited = (
   const newHost = isLastPlayer
     ? fakeHost
     : needsNewHost
-    ? remainingUsers[0]
-    : state.host;
+      ? remainingUsers[0]
+      : state.host;
 
   let log = addLog(`user ${action.user.name} left 😢`, state.log);
 
@@ -244,12 +247,12 @@ const handleUserExited = (
   if (isLastPlayer) {
     return {
       ...nextState,
-      phase: "lobby",
+      phase: 'lobby',
       turn: undefined,
     };
   }
 
-  if (state.phase === "lobby") {
+  if (state.phase === 'lobby') {
     return nextState;
   }
 
@@ -266,7 +269,7 @@ const handleUserExited = (
 const handleStartGame = (
   deck: Deck,
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "startGame" }>
+  action: Extract<ServerAction, { type: 'startGame' }>
 ): ServerGameState => {
   // Need at least 2 players to start
   if (state.users.length < 2) {
@@ -289,14 +292,14 @@ const handleStartGame = (
     deck: deck.getCards(),
     turn: getNextTurn(action.user, state.users, state.direction),
     users,
-    phase: "game",
+    phase: 'game',
   };
 };
 
 const handleDrew = (
   deck: Deck,
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "draw" }>
+  action: Extract<ServerAction, { type: 'draw' }>
 ) => {
   let discardPile = state.discardPile;
   let log = state.log;
@@ -320,14 +323,15 @@ const handleDrew = (
         ? user
         : { ...user, cards: [...user.cards, drawnCard] }
     ),
+    log: log,
   };
 };
 
 const handleDiscarded = (
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "discard" }>
+  action: Extract<ServerAction, { type: 'discard' }>
 ): ServerGameState => {
-  if (state.phase === "lobby") {
+  if (state.phase === 'lobby') {
     return state;
   }
 
@@ -354,18 +358,18 @@ const handleDiscarded = (
     return {
       ...state,
       users: users,
-      phase: "gameOver",
+      phase: 'gameOver',
     };
   }
 
   const direction =
-    discardName === "Reverse"
+    discardName === 'Reverse'
       ? getOtherDirection(state.direction)
       : state.direction;
 
   const nextTurn = getNextTurn(action.user, users, direction);
   const turn =
-    discardName === "Skip" ? getNextTurn(nextTurn, users, direction) : nextTurn;
+    discardName === 'Skip' ? getNextTurn(nextTurn, users, direction) : nextTurn;
 
   return {
     ...state,
@@ -378,7 +382,7 @@ const handleDiscarded = (
 
 const handleSpectatorEntered = (
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "SpectatorEntered" }>
+  action: Extract<ServerAction, { type: 'SpectatorEntered' }>
 ): ServerGameState => {
   return {
     ...state,
@@ -389,7 +393,7 @@ const handleSpectatorEntered = (
 
 const handleSpectatorExited = (
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "SpectatorExit" }>
+  action: Extract<ServerAction, { type: 'SpectatorExit' }>
 ): ServerGameState => {
   return {
     ...state,
@@ -401,7 +405,7 @@ const handleSpectatorExited = (
 const handleBecomeSpectator = (
   deck: Deck,
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "becomeSpectator" }>
+  action: Extract<ServerAction, { type: 'becomeSpectator' }>
 ): ServerGameState => {
   const user = state.users.find((u) => u.id === action.user.id);
   if (!user) return state;
@@ -418,8 +422,8 @@ const handleBecomeSpectator = (
   const newHost = isNoPlayersLeft
     ? fakeHost
     : needsNewHost
-    ? remainingUsers[0]
-    : state.host;
+      ? remainingUsers[0]
+      : state.host;
 
   const baseState = {
     ...state,
@@ -437,12 +441,12 @@ const handleBecomeSpectator = (
   if (isNoPlayersLeft) {
     return {
       ...baseState,
-      phase: "lobby",
+      phase: 'lobby',
       turn: undefined,
     };
   }
 
-  if (state.phase === "lobby") {
+  if (state.phase === 'lobby') {
     return baseState;
   }
 
@@ -450,7 +454,7 @@ const handleBecomeSpectator = (
   if (isOnePlayerLeft) {
     return {
       ...baseState,
-      phase: "gameOver",
+      phase: 'gameOver',
       turn: remainingUsers[0],
     };
   }
@@ -467,10 +471,10 @@ const handleBecomeSpectator = (
 
 const handleBecomePlayer = (
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "becomePlayer" }>
+  action: Extract<ServerAction, { type: 'becomePlayer' }>
 ): ServerGameState => {
   // Only allowed in lobby or gameOver phase
-  if (state.phase !== "lobby" && state.phase !== "gameOver") return state;
+  if (state.phase !== 'lobby' && state.phase !== 'gameOver') return state;
 
   const spectator = state.spectators.find((s) => s.id === action.user.id);
   const needsNewHost = state.host.id === fakeHost.id;
@@ -490,7 +494,7 @@ const handleBecomePlayer = (
 
 const handleUserDisconnected = (
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "UserDisconnected" }>
+  action: Extract<ServerAction, { type: 'UserDisconnected' }>
 ): ServerGameState => {
   const user = state.users.find((u) => u.id === action.user.id);
   if (!user) return state;
@@ -503,8 +507,8 @@ const handleUserDisconnected = (
   const newHost = isNoPlayersLeft
     ? fakeHost
     : needsNewHost
-    ? remainingUsers[0]
-    : state.host;
+      ? remainingUsers[0]
+      : state.host;
 
   const updatedUsers = state.users.map((user) => {
     const isDisconnectedUser = user.id === action.user.id;
@@ -528,7 +532,7 @@ const handleUserDisconnected = (
 
 const handleUserReconnected = (
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "UserReconnected" }>
+  action: Extract<ServerAction, { type: 'UserReconnected' }>
 ): ServerGameState => {
   const disconnectedUser = state.disconnectedUsers.find(
     (u) => u.id === action.user.id
@@ -557,9 +561,9 @@ const handleUserReconnected = (
 const handleKickPlayer = (
   deck: Deck,
   state: ServerGameState,
-  action: Extract<ServerAction, { type: "kickPlayer" }>
+  action: Extract<ServerAction, { type: 'kickPlayer' }>
 ): ServerGameState => {
-  const isInGame = state.phase === "game";
+  const isInGame = state.phase === 'game';
 
   // Only host can kick
   if (action.user.id !== state.host.id) return state;
@@ -579,7 +583,7 @@ const handleKickPlayer = (
   if (isOnePlayerLeft) {
     return {
       ...state,
-      phase: "gameOver",
+      phase: 'gameOver',
       turn: remainingUsers[0],
     };
   }
@@ -603,7 +607,7 @@ const handleKickPlayer = (
   };
 
   if (wasKickedPlayersTurn) {
-    updates["turn"] = nextTurn;
+    updates['turn'] = nextTurn;
   }
 
   return updates;
@@ -616,29 +620,29 @@ export const gameUpdater = (
   const deck = new Deck(state.deck);
 
   switch (action.type) {
-    case "UserEntered":
+    case 'UserEntered':
       return handleUserEntered(deck, state, action);
-    case "UserExit":
+    case 'UserExit':
       return handleUserExited(deck, state, action);
-    case "UserDisconnected":
+    case 'UserDisconnected':
       return handleUserDisconnected(state, action);
-    case "UserReconnected":
+    case 'UserReconnected':
       return handleUserReconnected(state, action);
-    case "SpectatorEntered":
+    case 'SpectatorEntered':
       return handleSpectatorEntered(state, action);
-    case "SpectatorExit":
+    case 'SpectatorExit':
       return handleSpectatorExited(state, action);
-    case "startGame":
+    case 'startGame':
       return handleStartGame(deck, state, action);
-    case "draw":
+    case 'draw':
       return handleDrew(deck, state, action);
-    case "discard":
+    case 'discard':
       return handleDiscarded(state, action);
-    case "becomeSpectator":
+    case 'becomeSpectator':
       return handleBecomeSpectator(deck, state, action);
-    case "becomePlayer":
+    case 'becomePlayer':
       return handleBecomePlayer(state, action);
-    case "kickPlayer":
+    case 'kickPlayer':
       return handleKickPlayer(deck, state, action);
   }
 };
@@ -646,14 +650,7 @@ export const gameUpdater = (
 export const convertServerToClientState = (
   gameState: ServerGameState
 ): ClientGameState => {
-  const {
-    users,
-    disconnectedUsers,
-    discardPile,
-    deck,
-    spectators,
-    ...safeState
-  } = gameState;
+  const { users, discardPile, spectators, ...safeState } = gameState;
 
   // Combine active and disconnected users, marking disconnected ones
   const allUsers: UserWithCardCount[] = [

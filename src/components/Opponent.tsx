@@ -24,7 +24,7 @@ const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
     <div
       className={`box-border flex w-26 flex-col items-center rounded-xl p-3 transition-all duration-300 ${
         isTheirTurn
-          ? 'bg-gradient-to-b from-amber-100 to-amber-200 ring-2 shadow-lg ring-amber-400'
+          ? 'bg-gradient-to-b from-amber-100 to-amber-200 shadow-lg ring-2 ring-amber-400'
           : 'bg-stone-100'
       } ${user.disconnected ? 'opacity-50' : ''}`}
     >
