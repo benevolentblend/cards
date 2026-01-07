@@ -72,3 +72,7 @@ APP_URL=http://localhost:3000
 - Spectator mode
 - Host can kick disconnected players
 - Direction indicator (clockwise/counterclockwise)
+
+## Development Workflow
+
+IMPORTANT: always run the linter and build before committing, always fix any errors: npm run lint:fix npm run build
