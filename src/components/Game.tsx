@@ -1,11 +1,14 @@
-import { CardWithId, useGameRoom } from "@/hooks/useGameRoom";
-import CardComponent from "./Card";
-import { canBeDiscarded } from "@/utils";
-import GameLobby from "./GameLobby";
-import GameOver from "./GameOver";
-import { FC } from "react";
-import Opponent from "./Opponent";
-import Logs from "./Logs";
+import { useGameRoom } from '@/hooks/useGameRoom';
+import { canBeDiscarded } from '@/utils';
+
+import CardComponent from './Card';
+import GameLobby from './GameLobby';
+import GameOver from './GameOver';
+import Logs from './Logs';
+import Opponent from './Opponent';
+
+import type { CardWithId } from '@/hooks/useGameRoom';
+import type { FC } from 'react';
 
 interface GameProps {
   username: string;
@@ -43,15 +46,15 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
   const direction = clientState.gameState.direction;
 
   const drawCard = () => {
-    serverDispatch({ type: "draw" });
+    serverDispatch({ type: 'draw' });
   };
 
   const discardCard = (card: CardWithId) => {
-    serverDispatch({ type: "discard", card: card.card });
-    clientDispatch({ type: "discard", payload: card.id });
+    serverDispatch({ type: 'discard', card: card.card });
+    clientDispatch({ type: 'discard', payload: card.id });
   };
 
-  if (clientState.gameState.phase === "lobby") {
+  if (clientState.gameState.phase === 'lobby') {
     return (
       <GameLobby
         {...{
@@ -69,7 +72,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
     );
   }
 
-  if (clientState.gameState.phase === "gameOver") {
+  if (clientState.gameState.phase === 'gameOver') {
     const winner = clientState.gameState.turn;
     return (
       <GameOver
@@ -88,7 +91,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
     );
   }
 
-  const becomeSpectator = () => serverDispatch({ type: "becomeSpectator" });
+  const becomeSpectator = () => serverDispatch({ type: 'becomeSpectator' });
 
   return (
     <div className="space-y-4">
@@ -107,14 +110,14 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2">
           <span className="text-stone-500">
-            Host:{" "}
+            Host:{' '}
             <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
               {clientState.gameState.host.name}
             </span>
           </span>
           <span className="text-stone-500">Direction:</span>
           <span className="text-lg">
-            {direction === "clockwise" ? "➡️" : "⬅️"}
+            {direction === 'clockwise' ? '➡️' : '⬅️'}
           </span>
         </div>
         {spectatorCount > 0 && !isSpectator && (
@@ -147,7 +150,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
             isTheirTurn={clientState.gameState?.turn?.id === user.id}
             isHost={isHost}
             onKick={() =>
-              serverDispatch({ type: "kickPlayer", targetUserId: user.id })
+              serverDispatch({ type: 'kickPlayer', targetUserId: user.id })
             }
           />
         ))}
@@ -191,8 +194,8 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
                     key={cardId}
                     className={`transition-all duration-200 ${
                       isPlayable
-                        ? "ring-2 ring-green-400 ring-offset-2 rounded-xl"
-                        : ""
+                        ? 'ring-2 ring-green-400 ring-offset-2 rounded-xl'
+                        : ''
                     }`}
                   >
                     <CardComponent card={card}>

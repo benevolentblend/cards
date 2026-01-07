@@ -1,4 +1,4 @@
-import { Card, CardSuit, CardName } from "../../game/Cards";
+import type { Card, CardSuit, CardName } from '../../game/Cards';
 
 export const stringToColor = (value: string) => {
   let hash = 0;
@@ -10,7 +10,7 @@ export const stringToColor = (value: string) => {
 };
 
 export const getCardValues = (card: Card) => {
-  const [suit, name] = card.split("-") as [CardSuit, CardName];
+  const [suit, name] = card.split('-') as [CardSuit, CardName];
 
   return { suit, name };
 };

@@ -1,8 +1,9 @@
-import { FC } from "react";
-import { Action, User } from "../../game/logic";
-import NameForm from "./NameForm";
-import PlayerList from "./PlayerList";
-import Logs from "./Logs";
+import Logs from './Logs';
+import NameForm from './NameForm';
+import PlayerList from './PlayerList';
+
+import type { Action, User } from '../../game/logic';
+import type { FC } from 'react';
 
 interface LogEntry {
   dt: number;
@@ -32,11 +33,11 @@ const GameOver: FC<GameOverProps> = ({
   setUsername,
   log,
 }) => {
-  const startGame = () => serverDispatch({ type: "startGame" });
-  const joinGame = () => serverDispatch({ type: "becomePlayer" });
-  const becomeSpectator = () => serverDispatch({ type: "becomeSpectator" });
+  const startGame = () => serverDispatch({ type: 'startGame' });
+  const joinGame = () => serverDispatch({ type: 'becomePlayer' });
+  const becomeSpectator = () => serverDispatch({ type: 'becomeSpectator' });
 
-  const initial = winner.name.charAt(0).toUpperCase() || "?";
+  const initial = winner.name.charAt(0).toUpperCase() || '?';
   const canStartGame = otherUsers.length >= 1;
 
   return (
@@ -51,19 +52,19 @@ const GameOver: FC<GameOverProps> = ({
           </div>
         </div>
         <p className="text-xl text-stone-700">
-          <span className="font-semibold text-amber-600">{winner.name}</span>{" "}
+          <span className="font-semibold text-amber-600">{winner.name}</span>{' '}
           wins!
         </p>
       </div>
 
       <div className="flex justify-center gap-2 text-4xl">
-        <span className="animate-pulse" style={{ animationDelay: "0ms" }}>
+        <span className="animate-pulse" style={{ animationDelay: '0ms' }}>
           🏆
         </span>
-        <span className="animate-pulse" style={{ animationDelay: "200ms" }}>
+        <span className="animate-pulse" style={{ animationDelay: '200ms' }}>
           ⭐
         </span>
-        <span className="animate-pulse" style={{ animationDelay: "400ms" }}>
+        <span className="animate-pulse" style={{ animationDelay: '400ms' }}>
           🎊
         </span>
       </div>
@@ -97,11 +98,11 @@ const GameOver: FC<GameOverProps> = ({
                 className={`w-full rounded-xl p-4 font-semibold shadow-lg transition-all duration-200
                 ${
                   canStartGame
-                    ? "bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                    : "bg-stone-200 text-stone-400 cursor-not-allowed"
+                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]'
+                    : 'bg-stone-200 text-stone-400 cursor-not-allowed'
                 }`}
               >
-                {canStartGame ? "🎲 Play Again " : "⏳ Waiting for players..."}
+                {canStartGame ? '🎲 Play Again ' : '⏳ Waiting for players...'}
               </button>
             ) : (
               <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">

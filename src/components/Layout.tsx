@@ -1,11 +1,11 @@
-import { Inter } from "next/font/google";
+import { Inter } from 'next/font/google';
 
 interface LayoutProps {
   children: React.ReactNode;
   topRight?: React.ReactNode;
 }
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
 const Layout = ({ children, topRight }: LayoutProps) => {
   return (

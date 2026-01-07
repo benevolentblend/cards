@@ -1,14 +1,17 @@
-import { getAvailableRoomId } from "@/lobby";
-import { useRouter } from "next/router";
-import { FC, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { getAvailableRoomId } from '@/lobby';
+
+import type { FC } from 'react';
 
 interface CreateRoomButtonProps {
   disabled?: boolean;
 }
 
 const CreateRoomButton: FC<CreateRoomButtonProps> = ({ disabled = false }) => {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
   const router = useRouter();
   useEffect(() => {
     async function getRoomCode() {
@@ -25,7 +28,7 @@ const CreateRoomButton: FC<CreateRoomButtonProps> = ({ disabled = false }) => {
 
   return (
     <Button
-      disabled={disabled || code === ""}
+      disabled={disabled || code === ''}
       onClick={onClick}
       size="lg"
       className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 font-semibold

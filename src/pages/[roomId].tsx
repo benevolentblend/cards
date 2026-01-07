@@ -1,25 +1,26 @@
-import Game from "@/components/Game";
-import Layout from "@/components/Layout";
-import { v4 as uuid } from "uuid";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useRouter } from "next/router";
-import { getRandomUsername } from "@/lobby";
-import { useEffect } from "react";
-import RoomCode from "@/components/RoomCode";
+import { useRouter } from 'next/router';
+import { useEffect } from 'react';
+import { v4 as uuid } from 'uuid';
+
+import Game from '@/components/Game';
+import Layout from '@/components/Layout';
+import RoomCode from '@/components/RoomCode';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { getRandomUsername } from '@/lobby';
 
 export default function Home() {
   const router = useRouter();
-  const [id] = useLocalStorage("id", uuid());
+  const [id] = useLocalStorage('id', uuid());
   const [username, setUsername] = useLocalStorage(
-    "username",
+    'username',
     getRandomUsername()
   );
 
   useEffect(() => {
-    if (username === "") setUsername(getRandomUsername());
+    if (username === '') setUsername(getRandomUsername());
   }, [setUsername, username]);
 
-  if (!router.isReady || typeof router.query.roomId !== "string") {
+  if (!router.isReady || typeof router.query.roomId !== 'string') {
     return (
       <Layout>
         <div className="text-center">Loading...</div>

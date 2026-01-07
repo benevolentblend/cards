@@ -1,6 +1,7 @@
-import { FC } from "react";
-import { User } from "../../game/logic";
-import PlayerAvatar from "./PlayerAvatar";
+import PlayerAvatar from './PlayerAvatar';
+
+import type { User } from '../../game/logic';
+import type { FC } from 'react';
 
 interface PlayerListProps {
   otherUsers: User[];
@@ -23,13 +24,13 @@ const PlayerList: FC<PlayerListProps> = ({
     <>
       <div className="text-center">
         <p className="text-stone-500">
-          {totalPlayers} player{totalPlayers !== 1 ? "s" : ""} at the table
+          {totalPlayers} player{totalPlayers !== 1 ? 's' : ''} at the table
         </p>
       </div>
       <div className="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl p-6 border border-emerald-200">
         <div className="flex flex-wrap justify-center gap-6">
           {!isSpectator && (
-            <PlayerAvatar name={username || "You"} isHost={isHost} />
+            <PlayerAvatar name={username || 'You'} isHost={isHost} />
           )}
           {otherUsers.map((user) => {
             const playerIsHost = user.id === hostId;

@@ -1,4 +1,4 @@
-import { FC } from "react";
+import type { FC } from 'react';
 
 interface PlayerAvatarProps {
   name: string;
@@ -6,15 +6,15 @@ interface PlayerAvatarProps {
 }
 
 const PlayerAvatar: FC<PlayerAvatarProps> = ({ name, isHost }) => {
-  const initial = name.charAt(0).toUpperCase() || "?";
+  const initial = name.charAt(0).toUpperCase() || '?';
   const colors = [
-    "from-pink-400 to-rose-500",
-    "from-violet-400 to-purple-500",
-    "from-cyan-400 to-teal-500",
-    "from-orange-400 to-amber-500",
+    'from-pink-400 to-rose-500',
+    'from-violet-400 to-purple-500',
+    'from-cyan-400 to-teal-500',
+    'from-orange-400 to-amber-500',
   ];
   const colorIndex =
-    name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+    name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) %
     colors.length;
 
   return (

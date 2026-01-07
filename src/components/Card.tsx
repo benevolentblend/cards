@@ -1,6 +1,8 @@
-import { getCardValues } from "@/utils";
-import { Card, CardSuit } from "../../game/Cards";
-import { RefreshCw, SkipForward } from "lucide-react";
+import { RefreshCw, SkipForward } from 'lucide-react';
+
+import { getCardValues } from '@/utils';
+
+import type { Card, CardSuit } from '../../game/Cards';
 
 interface BaseCardComponentProps extends React.PropsWithChildren {
   colorClasses: string;
@@ -9,29 +11,29 @@ interface BaseCardComponentProps extends React.PropsWithChildren {
 
 export const suitToColors = (suit: CardSuit) => {
   switch (suit) {
-    case "R":
+    case 'R':
       return {
-        bg: "bg-gradient-to-br from-red-500 to-red-700",
-        text: "text-red-700",
-        border: "border-red-800",
+        bg: 'bg-gradient-to-br from-red-500 to-red-700',
+        text: 'text-red-700',
+        border: 'border-red-800',
       };
-    case "B":
+    case 'B':
       return {
-        bg: "bg-gradient-to-br from-blue-500 to-blue-700",
-        text: "text-blue-700",
-        border: "border-blue-800",
+        bg: 'bg-gradient-to-br from-blue-500 to-blue-700',
+        text: 'text-blue-700',
+        border: 'border-blue-800',
       };
-    case "G":
+    case 'G':
       return {
-        bg: "bg-gradient-to-br from-green-500 to-green-700",
-        text: "text-green-700",
-        border: "border-green-800",
+        bg: 'bg-gradient-to-br from-green-500 to-green-700',
+        text: 'text-green-700',
+        border: 'border-green-800',
       };
-    case "Y":
+    case 'Y':
       return {
-        bg: "bg-gradient-to-br from-yellow-300 to-yellow-500",
-        text: "text-yellow-700",
-        border: "border-yellow-600",
+        bg: 'bg-gradient-to-br from-yellow-300 to-yellow-500',
+        text: 'text-yellow-700',
+        border: 'border-yellow-600',
       };
   }
 };
@@ -44,7 +46,7 @@ const BaseCardComponent: React.FC<BaseCardComponentProps> = ({
   <div
     className={`relative grid justify-center content-center p-2 rounded-xl w-24 h-36 border-2 shadow-lg
       transition-all duration-200 ease-out
-      ${isBack ? "" : "hover:-translate-y-2 hover:shadow-xl"}
+      ${isBack ? '' : 'hover:-translate-y-2 hover:shadow-xl'}
       ${colorClasses}`}
   >
     <div className="absolute inset-1 rounded-lg border border-white/30 pointer-events-none" />
@@ -78,10 +80,10 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
   const colors = suitToColors(suit);
 
   const renderCardContent = () => {
-    if (name === "Skip") {
+    if (name === 'Skip') {
       return <SkipForward className="w-8 h-8" />;
     }
-    if (name === "Reverse") {
+    if (name === 'Reverse') {
       return <RefreshCw className="w-8 h-8" />;
     }
     return <span className="text-xl font-bold">{name}</span>;

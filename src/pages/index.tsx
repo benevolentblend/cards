@@ -1,19 +1,14 @@
-import Game from "@/components/Game";
-import Layout from "@/components/Layout";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { v4 as uuid } from "uuid";
-import CreateRoomButton from "@/components/CreateRoomButton";
-import NameForm from "@/components/NameForm";
+import { v4 as uuid } from 'uuid';
 
-interface GameSetup {
-  username: string | null;
-  roomId: string | null;
-  showGame: boolean;
-}
+import CreateRoomButton from '@/components/CreateRoomButton';
+import Layout from '@/components/Layout';
+import NameForm from '@/components/NameForm';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 export default function Home() {
-  const [id] = useLocalStorage("id", uuid());
-  const [username, setUsername] = useLocalStorage("username", "");
+  // Pre-generate user ID so it's available when joining a game room
+  const [_id] = useLocalStorage('id', uuid());
+  const [username, setUsername] = useLocalStorage('username', '');
 
   return (
     <Layout>
@@ -21,7 +16,7 @@ export default function Home() {
 
       <NameForm {...{ username, setUsername }} />
       <div className="flex-col pt-2">
-        <CreateRoomButton disabled={username === ""} />
+        <CreateRoomButton disabled={username === ''} />
       </div>
     </Layout>
   );

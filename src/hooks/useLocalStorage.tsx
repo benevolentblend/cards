@@ -1,4 +1,6 @@
-import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { useState, useEffect } from 'react';
+
+import type { Dispatch, SetStateAction } from 'react';
 
 export const useLocalStorage = (
   key: string,
@@ -15,7 +17,7 @@ export const useLocalStorage = (
         setStoredValue(JSON.parse(item));
       }
     } catch (error) {
-      console.error("Error reading localStorage", error);
+      console.error('Error reading localStorage', error);
     }
     setIsHydrated(true);
   }, [key]);
@@ -26,7 +28,7 @@ export const useLocalStorage = (
     try {
       window.localStorage.setItem(key, JSON.stringify(storedValue));
     } catch (error) {
-      console.error("Error setting localStorage", error);
+      console.error('Error setting localStorage', error);
     }
   }, [key, storedValue, isHydrated]);
 

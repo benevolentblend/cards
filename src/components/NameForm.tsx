@@ -1,4 +1,6 @@
-import { FC, useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
+
+import type { FC } from 'react';
 
 interface NameFormProps {
   username: string;
@@ -39,8 +41,8 @@ const NameForm: FC<NameFormProps> = ({ username, setUsername }) => {
           className={`rounded-lg px-4 py-2 font-medium text-sm transition-all duration-200
             ${
               hasChanges
-                ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
-                : "bg-stone-200 text-stone-400 cursor-not-allowed"
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95'
+                : 'bg-stone-200 text-stone-400 cursor-not-allowed'
             }`}
           disabled={!hasChanges}
           onClick={(e) => {

@@ -1,5 +1,5 @@
-import { FC } from "react";
-import { UserWithCardCount } from "../../game/logic";
+import type { UserWithCardCount } from '../../game/logic';
+import type { FC } from 'react';
 
 interface OpponentProps {
   user: UserWithCardCount;
@@ -9,24 +9,24 @@ interface OpponentProps {
 }
 
 const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
-  const initial = user.name.charAt(0).toUpperCase() || "?";
+  const initial = user.name.charAt(0).toUpperCase() || '?';
   const colors = [
-    "from-pink-400 to-rose-500",
-    "from-violet-400 to-purple-500",
-    "from-cyan-400 to-teal-500",
-    "from-orange-400 to-amber-500",
+    'from-pink-400 to-rose-500',
+    'from-violet-400 to-purple-500',
+    'from-cyan-400 to-teal-500',
+    'from-orange-400 to-amber-500',
   ];
   const colorIndex =
-    user.name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+    user.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) %
     colors.length;
 
   return (
     <div
       className={`flex flex-col items-center p-3 rounded-xl transition-all duration-300 w-26 box-border ${
         isTheirTurn
-          ? "bg-gradient-to-b from-amber-100 to-amber-200 ring-2 ring-amber-400 shadow-lg"
-          : "bg-stone-100"
-      } ${user.disconnected ? "opacity-50" : ""}`}
+          ? 'bg-gradient-to-b from-amber-100 to-amber-200 ring-2 ring-amber-400 shadow-lg'
+          : 'bg-stone-100'
+      } ${user.disconnected ? 'opacity-50' : ''}`}
     >
       <div className="relative">
         <div
@@ -34,7 +34,7 @@ const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
             colors[colorIndex]
           }
             flex items-center justify-center text-white text-lg font-bold shadow-md
-            border-2 ${isTheirTurn ? "border-amber-400" : "border-white/50"}`}
+            border-2 ${isTheirTurn ? 'border-amber-400' : 'border-white/50'}`}
         >
           {initial}
         </div>
