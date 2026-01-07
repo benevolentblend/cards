@@ -171,7 +171,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       )}
 
       <div className="flex flex-wrap justify-center gap-4 py-2">
-        {otherUsers.map((user) => (
+        {clientState.gameState.users.map((user) => (
           <Opponent
             key={user.id}
             user={user}
@@ -190,7 +190,10 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
           <div className="text-center">
             <p className="mb-2 text-xs text-stone-500">Discard Pile</p>
             <div className="transform transition-transform hover:scale-105">
-              <CardComponent card={lastDiscarded} effectiveColor={effectiveColor} />
+              <CardComponent
+                card={lastDiscarded}
+                effectiveColor={effectiveColor}
+              />
             </div>
           </div>
           <div className="text-center">
