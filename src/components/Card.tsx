@@ -44,12 +44,9 @@ const BaseCardComponent: React.FC<BaseCardComponentProps> = ({
   children,
 }) => (
   <div
-    className={`relative grid justify-center content-center p-2 rounded-xl w-24 h-36 border-2 shadow-lg
-      transition-all duration-200 ease-out
-      ${isBack ? '' : 'hover:-translate-y-2 hover:shadow-xl'}
-      ${colorClasses}`}
+    className={`relative grid h-36 w-24 content-center justify-center rounded-xl border-2 p-2 shadow-lg transition-all duration-200 ease-out ${isBack ? '' : 'hover:-translate-y-2 hover:shadow-xl'} ${colorClasses}`}
   >
-    <div className="absolute inset-1 rounded-lg border border-white/30 pointer-events-none" />
+    <div className="pointer-events-none absolute inset-1 rounded-lg border border-white/30" />
     {children}
   </div>
 );
@@ -66,8 +63,8 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
         isBack
       >
         <div className="flex flex-col items-center justify-center">
-          <div className="text-3xl mb-1">🃏</div>
-          <div className="text-white text-xs font-medium tracking-wider opacity-75">
+          <div className="mb-1 text-3xl">🃏</div>
+          <div className="text-xs font-medium tracking-wider text-white opacity-75">
             DECK
           </div>
         </div>
@@ -81,10 +78,10 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
 
   const renderCardContent = () => {
     if (name === 'Skip') {
-      return <SkipForward className="w-8 h-8" />;
+      return <SkipForward className="h-8 w-8" />;
     }
     if (name === 'Reverse') {
-      return <RefreshCw className="w-8 h-8" />;
+      return <RefreshCw className="h-8 w-8" />;
     }
     return <span className="text-xl font-bold">{name}</span>;
   };
@@ -95,15 +92,15 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
 
   return (
     <BaseCardComponent colorClasses={`${colors.bg} ${colors.border}`}>
-      <div className="absolute top-2 left-2 text-white font-bold text-sm drop-shadow flex items-center">
+      <div className="absolute top-2 left-2 flex items-center text-sm font-bold text-white drop-shadow">
         {renderCornerContent()}
       </div>
       <div
-        className={`rounded-full text-center bg-white w-16 h-16 flex items-center justify-center shadow-inner ${colors.text}`}
+        className={`flex h-16 w-16 items-center justify-center rounded-full bg-white text-center shadow-inner ${colors.text}`}
       >
         {renderCardContent()}
       </div>
-      <div className="absolute bottom-2 right-2 text-white font-bold text-sm drop-shadow rotate-180 flex items-center">
+      <div className="absolute right-2 bottom-2 flex rotate-180 items-center text-sm font-bold text-white drop-shadow">
         {renderCornerContent()}
       </div>
       {children}

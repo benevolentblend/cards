@@ -27,8 +27,8 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
   if (clientState.gameState === null) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="text-4xl mb-4 animate-bounce">🃏</div>
-        <p className="text-stone-500 animate-pulse">Connecting to game...</p>
+        <div className="mb-4 animate-bounce text-4xl">🃏</div>
+        <p className="animate-pulse text-stone-500">Connecting to game...</p>
       </div>
     );
   }
@@ -96,7 +96,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
   return (
     <div className="space-y-4">
       {isSpectator && (
-        <div className="bg-gradient-to-r from-stone-200 to-stone-300 text-stone-600 text-center p-3 rounded-xl flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-stone-200 to-stone-300 p-3 text-center text-stone-600">
           <span className="text-lg">👀</span>
           <span>Spectating</span>
           {spectatorCount > 1 && (
@@ -111,7 +111,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
         <div className="flex items-center gap-2">
           <span className="text-stone-500">
             Host:{' '}
-            <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
+            <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs text-amber-800">
               {clientState.gameState.host.name}
             </span>
           </span>
@@ -129,13 +129,13 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       </div>
 
       {isUsersTurn && (
-        <div className="bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-300 rounded-xl p-3 text-center box-border">
-          <span className="text-amber-800 font-semibold">🎯 Your turn!</span>
+        <div className="box-border rounded-xl border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 p-3 text-center">
+          <span className="font-semibold text-amber-800">🎯 Your turn!</span>
         </div>
       )}
 
       {!!clientState.gameState.turn && !isUsersTurn && (
-        <div className="bg-stone-100 rounded-xl p-3 text-center box-border">
+        <div className="box-border rounded-xl bg-stone-100 p-3 text-center">
           <span className="text-stone-600">
             Waiting for {clientState.gameState.turn.name}...
           </span>
@@ -157,21 +157,19 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       </div>
 
       <div className="flex justify-center py-6">
-        <div className="flex gap-4 items-start justify-center h-55 w-55">
+        <div className="flex h-55 w-55 items-start justify-center gap-4">
           <div className="text-center">
-            <p className="text-xs text-stone-500 mb-2">Discard Pile</p>
-            <div className="transform hover:scale-105 transition-transform">
+            <p className="mb-2 text-xs text-stone-500">Discard Pile</p>
+            <div className="transform transition-transform hover:scale-105">
               <CardComponent card={lastDiscarded} />
             </div>
           </div>
           <div className="text-center">
-            <p className="text-xs text-stone-500 mb-2">Draw Pile</p>
+            <p className="mb-2 text-xs text-stone-500">Draw Pile</p>
             <CardComponent />
             {isUsersTurn && (
               <button
-                className="mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg px-4 py-2
-                  text-white text-xs font-semibold shadow-md hover:shadow-lg
-                  hover:scale-105 active:scale-95 transition-all"
+                className="mt-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
                 onClick={drawCard}
               >
                 Draw Card
@@ -184,7 +182,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       {!isSpectator && (
         <>
           <div className="border-t border-stone-200 pt-4">
-            <p className="text-center text-sm text-stone-500 mb-3">Your Hand</p>
+            <p className="mb-3 text-center text-sm text-stone-500">Your Hand</p>
             <div className="flex flex-wrap justify-center gap-2">
               {clientState.hand.map(({ card, id: cardId }) => {
                 const cardCanBeDiscarded = canBeDiscarded(lastDiscarded, card);
@@ -194,16 +192,14 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
                     key={cardId}
                     className={`transition-all duration-200 ${
                       isPlayable
-                        ? 'ring-2 ring-green-400 ring-offset-2 rounded-xl'
+                        ? 'rounded-xl ring-2 ring-green-400 ring-offset-2'
                         : ''
                     }`}
                   >
                     <CardComponent card={card}>
                       {isPlayable && (
                         <button
-                          className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg px-3 py-2
-                            text-white text-xs font-semibold shadow-md hover:shadow-lg
-                            hover:scale-105 active:scale-95 transition-all"
+                          className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
                           onClick={() => discardCard({ card, id: cardId })}
                         >
                           Play
@@ -216,16 +212,16 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
             </div>
           </div>
 
-          <div className="text-center pt-2 flex justify-center items-center gap-3">
+          <div className="flex items-center justify-center gap-3 pt-2 text-center">
             <span className="font-medium text-stone-700">{username}</span>
             {isHost && (
-              <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
+              <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs text-amber-800">
                 Host
               </span>
             )}
             <button
               onClick={becomeSpectator}
-              className="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+              className="text-xs text-stone-400 transition-colors hover:text-stone-600"
             >
               Leave Game
             </button>

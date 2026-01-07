@@ -12,7 +12,7 @@ export default function Home() {
 
   return (
     <Layout>
-      <h1 className="text-2xl pb-5">Cards</h1>
+      <h1 className="pb-5 text-2xl">Cards</h1>
 
       <NameForm {...{ username, setUsername }} />
       <div className="flex-col pt-2">

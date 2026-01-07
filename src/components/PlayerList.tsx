@@ -27,7 +27,7 @@ const PlayerList: FC<PlayerListProps> = ({
           {totalPlayers} player{totalPlayers !== 1 ? 's' : ''} at the table
         </p>
       </div>
-      <div className="bg-gradient-to-br from-emerald-100 to-teal-100 rounded-xl p-6 border border-emerald-200">
+      <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-100 to-teal-100 p-6">
         <div className="flex flex-wrap justify-center gap-6">
           {!isSpectator && (
             <PlayerAvatar name={username || 'You'} isHost={isHost} />

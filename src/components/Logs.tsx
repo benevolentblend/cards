@@ -18,8 +18,8 @@ const Logs: FC<LogsProps> = ({ log }) => {
   const [showLogs, setShowLogs] = useLocalStorage('logs', 'false');
 
   return (
-    <div className="border-t border-stone-200 pt-4 mt-4">
-      <div className="flex items-center justify-between mb-2">
+    <div className="mt-4 border-t border-stone-200 pt-4">
+      <div className="mb-2 flex items-center justify-between">
         <Label htmlFor="show-logs" className="text-sm text-stone-500">
           Game Logs
         </Label>
@@ -30,7 +30,7 @@ const Logs: FC<LogsProps> = ({ log }) => {
         />
       </div>
       {showLogs === 'true' && (
-        <div className="bg-stone-100 rounded-lg p-3 text-xs text-stone-600 space-y-1 max-h-32 overflow-y-auto">
+        <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg bg-stone-100 p-3 text-xs text-stone-600">
           {log.length === 0 ? (
             <p className="text-stone-400 italic">No logs yet</p>
           ) : (

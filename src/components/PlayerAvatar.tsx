@@ -20,17 +20,15 @@ const PlayerAvatar: FC<PlayerAvatarProps> = ({ name, isHost }) => {
   return (
     <div className="flex flex-col items-center gap-1">
       <div
-        className={`w-14 h-14 rounded-full bg-gradient-to-br ${colors[colorIndex]}
-          flex items-center justify-center text-white text-xl font-bold shadow-md
-          border-2 border-white/50`}
+        className={`h-14 w-14 rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center border-2 border-white/50 text-xl font-bold text-white shadow-md`}
       >
         {initial}
       </div>
-      <span className="text-sm font-medium text-stone-700 max-w-[80px] truncate">
+      <span className="max-w-[80px] truncate text-sm font-medium text-stone-700">
         {name}
       </span>
       {isHost && (
-        <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+        <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800">
           Host
         </span>
       )}

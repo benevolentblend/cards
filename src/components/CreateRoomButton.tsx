@@ -31,9 +31,7 @@ const CreateRoomButton: FC<CreateRoomButtonProps> = ({ disabled = false }) => {
       disabled={disabled || code === ''}
       onClick={onClick}
       size="lg"
-      className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 font-semibold
-        shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200
-        disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-lg"
+      className="w-full bg-gradient-to-r from-amber-400 to-orange-500 font-semibold text-stone-900 shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-lg"
     >
       Create Room
     </Button>

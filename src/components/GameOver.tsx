@@ -41,13 +41,13 @@ const GameOver: FC<GameOverProps> = ({
   const canStartGame = otherUsers.length >= 1;
 
   return (
-    <div className="text-center space-y-6 py-4">
-      <div className="text-6xl animate-bounce">🎉</div>
+    <div className="space-y-6 py-4 text-center">
+      <div className="animate-bounce text-6xl">🎉</div>
 
       <div className="space-y-2">
         <h2 className="text-3xl font-bold text-stone-800">Game Over!</h2>
         <div className="flex items-center justify-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg border-4 border-amber-300">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-amber-300 bg-gradient-to-br from-amber-400 to-orange-500 text-2xl font-bold text-white shadow-lg">
             {initial}
           </div>
         </div>
@@ -74,17 +74,15 @@ const GameOver: FC<GameOverProps> = ({
         <NameForm username={username} setUsername={setUsername} />
       </div>
 
-      <div className="pt-2 space-y-3">
+      <div className="space-y-3 pt-2">
         {isSpectator ? (
           <div className="space-y-3">
-            <div className="bg-stone-100 rounded-lg p-3">
+            <div className="rounded-lg bg-stone-100 p-3">
               <span className="text-stone-600">👀 You were spectating</span>
             </div>
             <button
               onClick={joinGame}
-              className="w-full rounded-xl p-4 bg-gradient-to-r from-green-500 to-emerald-600
-                text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02]
-                active:scale-[0.98] transition-all duration-200"
+              className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 p-4 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]"
             >
               🎮 Join Next Game
             </button>
@@ -95,26 +93,24 @@ const GameOver: FC<GameOverProps> = ({
               <button
                 onClick={startGame}
                 disabled={!canStartGame}
-                className={`w-full rounded-xl p-4 font-semibold shadow-lg transition-all duration-200
-                ${
+                className={`w-full rounded-xl p-4 font-semibold shadow-lg transition-all duration-200 ${
                   canStartGame
-                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]'
-                    : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
+                    : 'cursor-not-allowed bg-stone-200 text-stone-400'
                 }`}
               >
                 {canStartGame ? '🎲 Play Again ' : '⏳ Waiting for players...'}
               </button>
             ) : (
-              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                <p className="text-amber-800 font-medium">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                <p className="font-medium text-amber-800">
                   ⏳ Waiting for host to start a new game...
                 </p>
               </div>
             )}
             <button
               onClick={becomeSpectator}
-              className="w-full rounded-lg p-3 bg-stone-100 text-stone-600 text-sm
-              hover:bg-stone-200 transition-all duration-200"
+              className="w-full rounded-lg bg-stone-100 p-3 text-sm text-stone-600 transition-all duration-200 hover:bg-stone-200"
             >
               👀 Become Spectator
             </button>

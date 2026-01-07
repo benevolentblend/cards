@@ -41,7 +41,7 @@ const GameLobby: FC<GameLobbyProps> = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-stone-800 mb-2">Game Lobby</h2>
+        <h2 className="mb-2 text-2xl font-bold text-stone-800">Game Lobby</h2>
       </div>
       <PlayerList {...{ isHost, isSpectator, hostId, otherUsers, username }} />
 
@@ -60,14 +60,12 @@ const GameLobby: FC<GameLobbyProps> = ({
 
       {isSpectator ? (
         <div className="space-y-3">
-          <div className="bg-stone-100 rounded-lg p-3 text-center">
+          <div className="rounded-lg bg-stone-100 p-3 text-center">
             <span className="text-stone-600">👀 You are spectating</span>
           </div>
           <button
             onClick={joinGame}
-            className="w-full rounded-xl p-4 bg-gradient-to-r from-green-500 to-emerald-600
-              text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02]
-              active:scale-[0.98] transition-all duration-200"
+            className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 p-4 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]"
           >
             🎮 Join Game
           </button>
@@ -78,27 +76,25 @@ const GameLobby: FC<GameLobbyProps> = ({
             <button
               onClick={startGame}
               disabled={!canStartGame}
-              className={`w-full rounded-xl p-4 font-semibold shadow-lg transition-all duration-200
-                ${
-                  canStartGame
-                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]'
-                    : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                }`}
+              className={`w-full rounded-xl p-4 font-semibold shadow-lg transition-all duration-200 ${
+                canStartGame
+                  ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-stone-900 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]'
+                  : 'cursor-not-allowed bg-stone-200 text-stone-400'
+              }`}
             >
               {canStartGame ? '🎲 Start Game' : '⏳ Waiting for players...'}
             </button>
           )}
           {!isHost && (
-            <div className="bg-amber-50 rounded-lg p-4 text-center border border-amber-200">
-              <p className="text-amber-800 font-medium">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
+              <p className="font-medium text-amber-800">
                 ⏳ Waiting for host to start the game...
               </p>
             </div>
           )}
           <button
             onClick={becomeSpectator}
-            className="w-full rounded-lg p-3 bg-stone-100 text-stone-600 text-sm
-              hover:bg-stone-200 transition-all duration-200"
+            className="w-full rounded-lg bg-stone-100 p-3 text-sm text-stone-600 transition-all duration-200 hover:bg-stone-200"
           >
             👀 Become Spectator
           </button>

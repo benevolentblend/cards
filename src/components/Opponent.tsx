@@ -22,43 +22,41 @@ const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
 
   return (
     <div
-      className={`flex flex-col items-center p-3 rounded-xl transition-all duration-300 w-26 box-border ${
+      className={`box-border flex w-26 flex-col items-center rounded-xl p-3 transition-all duration-300 ${
         isTheirTurn
-          ? 'bg-gradient-to-b from-amber-100 to-amber-200 ring-2 ring-amber-400 shadow-lg'
+          ? 'bg-gradient-to-b from-amber-100 to-amber-200 ring-2 shadow-lg ring-amber-400'
           : 'bg-stone-100'
       } ${user.disconnected ? 'opacity-50' : ''}`}
     >
       <div className="relative">
         <div
-          className={`w-12 h-12 rounded-full bg-gradient-to-br ${
+          className={`h-12 w-12 rounded-full bg-gradient-to-br ${
             colors[colorIndex]
-          }
-            flex items-center justify-center text-white text-lg font-bold shadow-md
-            border-2 ${isTheirTurn ? 'border-amber-400' : 'border-white/50'}`}
+          } flex items-center justify-center border-2 text-lg font-bold text-white shadow-md ${isTheirTurn ? 'border-amber-400' : 'border-white/50'}`}
         >
           {initial}
         </div>
         {isTheirTurn && (
-          <div className="absolute -top-1 -right-1 text-lg animate-bounce">
+          <div className="absolute -top-1 -right-1 animate-bounce text-lg">
             🎯
           </div>
         )}
       </div>
-      <span className="text-sm font-medium text-stone-700 mt-1 max-w-[80px] truncate">
+      <span className="mt-1 max-w-[80px] truncate text-sm font-medium text-stone-700">
         {user.name}
       </span>
-      <div className="flex items-center gap-1 mt-1">
+      <div className="mt-1 flex items-center gap-1">
         <span className="text-xs text-stone-500">{user.cardCount} cards</span>
       </div>
       {user.disconnected && (
-        <div className="flex flex-col items-center gap-1 mt-1">
-          <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+        <div className="mt-1 flex flex-col items-center gap-1">
+          <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-500">
             Offline
           </span>
           {isHost && (
             <button
               onClick={onKick}
-              className="text-xs text-red-600 hover:text-red-800 hover:bg-red-100 px-2 py-0.5 rounded transition-colors"
+              className="rounded px-2 py-0.5 text-xs text-red-600 transition-colors hover:bg-red-100 hover:text-red-800"
             >
               Remove
             </button>
@@ -66,11 +64,11 @@ const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
         </div>
       )}
 
-      <div className="flex mt-2 -space-x-6">
+      <div className="mt-2 flex -space-x-6">
         {Array.from(Array(Math.min(user.cardCount, 5)).keys()).map((i) => (
           <div
             key={i}
-            className="w-8 h-12 bg-gradient-to-br from-slate-600 to-slate-800 rounded border border-slate-900 shadow-sm"
+            className="h-12 w-8 rounded border border-slate-900 bg-gradient-to-br from-slate-600 to-slate-800 shadow-sm"
             style={{
               transform: `rotate(${(i - 2) * 8}deg)`,
               zIndex: i,
@@ -79,7 +77,7 @@ const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
         ))}
         {user.cardCount > 5 && (
           <div
-            className="w-8 h-12 bg-slate-500 rounded border border-slate-600 flex items-center justify-center text-white text-xs font-bold z-10"
+            className="z-10 flex h-12 w-8 items-center justify-center rounded border border-slate-600 bg-slate-500 text-xs font-bold text-white"
             style={{
               transform: `rotate(20deg)`,
             }}
