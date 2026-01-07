@@ -1,12 +1,17 @@
+import { useState } from 'react';
+
 import { useGameRoom } from '@/hooks/useGameRoom';
-import { canBeDiscarded } from '@/utils';
+import { canBeDiscarded, isWildCard } from '@/utils';
 
 import CardComponent from './Card';
+import ColorPicker from './ColorPicker';
+import PendingDrawIndicator from './PendingDrawIndicator';
 import GameLobby from './GameLobby';
 import GameOver from './GameOver';
 import Logs from './Logs';
 import Opponent from './Opponent';
 
+import type { ColorSuit } from '../../game/Cards';
 import type { CardWithId } from '@/hooks/useGameRoom';
 import type { FC } from 'react';
 
@@ -22,6 +27,9 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
     username,
     id,
     roomId
+  );
+  const [pendingWildCard, setPendingWildCard] = useState<CardWithId | null>(
+    null
   );
 
   if (clientState.gameState === null) {
@@ -44,14 +52,34 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
   );
   const spectatorCount = clientState.gameState.spectatorCount;
   const direction = clientState.gameState.direction;
+  const effectiveColor = clientState.gameState.effectiveColor;
+  const pendingDrawCount = clientState.gameState.pendingDrawCount;
+  const pendingDrawType = clientState.gameState.pendingDrawType;
 
   const drawCard = () => {
     serverDispatch({ type: 'draw' });
   };
 
   const discardCard = (card: CardWithId) => {
-    serverDispatch({ type: 'discard', card: card.card });
-    clientDispatch({ type: 'discard', payload: card.id });
+    if (isWildCard(card.card)) {
+      // Show color picker for wild cards
+      setPendingWildCard(card);
+    } else {
+      serverDispatch({ type: 'discard', card: card.card });
+      clientDispatch({ type: 'discard', payload: card.id });
+    }
+  };
+
+  const handleColorChoice = (color: ColorSuit) => {
+    if (pendingWildCard) {
+      serverDispatch({
+        type: 'discard',
+        card: pendingWildCard.card,
+        chosenColor: color,
+      });
+      clientDispatch({ type: 'discard', payload: pendingWildCard.id });
+      setPendingWildCard(null);
+    }
   };
 
   if (clientState.gameState.phase === 'lobby') {
@@ -156,12 +184,13 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
         ))}
       </div>
 
-      <div className="flex justify-center py-6">
+      <div className="flex flex-col items-center gap-2 py-6">
+        <PendingDrawIndicator pendingDrawCount={pendingDrawCount} />
         <div className="flex h-55 w-55 items-start justify-center gap-4">
           <div className="text-center">
             <p className="mb-2 text-xs text-stone-500">Discard Pile</p>
             <div className="transform transition-transform hover:scale-105">
-              <CardComponent card={lastDiscarded} />
+              <CardComponent card={lastDiscarded} effectiveColor={effectiveColor} />
             </div>
           </div>
           <div className="text-center">
@@ -169,10 +198,16 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
             <CardComponent />
             {isUsersTurn && (
               <button
-                className="mt-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+                className={`mt-2 rounded-lg px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95 ${
+                  pendingDrawCount > 0
+                    ? 'bg-gradient-to-r from-red-500 to-orange-600'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600'
+                }`}
                 onClick={drawCard}
               >
-                Draw Card
+                {pendingDrawCount > 0
+                  ? `Draw ${pendingDrawCount} Cards`
+                  : 'Draw Card'}
               </button>
             )}
           </div>
@@ -185,7 +220,12 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
             <p className="mb-3 text-center text-sm text-stone-500">Your Hand</p>
             <div className="flex flex-wrap justify-center gap-2">
               {clientState.hand.map(({ card, id: cardId }) => {
-                const cardCanBeDiscarded = canBeDiscarded(lastDiscarded, card);
+                const cardCanBeDiscarded = canBeDiscarded(
+                  lastDiscarded,
+                  card,
+                  effectiveColor,
+                  pendingDrawType
+                );
                 const isPlayable = isUsersTurn && cardCanBeDiscarded;
                 return (
                   <div
@@ -230,6 +270,11 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       )}
 
       <Logs log={clientState.gameState.log} />
+
+      <ColorPicker
+        isOpen={pendingWildCard !== null}
+        onSelectColor={handleColorChoice}
+      />
     </div>
   );
 };

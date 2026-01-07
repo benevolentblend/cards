@@ -1,8 +1,8 @@
-import { RefreshCw, SkipForward } from 'lucide-react';
+import { Layers, Palette, RefreshCw, SkipForward } from 'lucide-react';
 
 import { getCardValues } from '@/utils';
 
-import type { Card, CardSuit } from '../../game/Cards';
+import type { Card, CardSuit, ColorSuit } from '../../game/Cards';
 
 interface BaseCardComponentProps extends React.PropsWithChildren {
   colorClasses: string;
@@ -35,6 +35,12 @@ export const suitToColors = (suit: CardSuit) => {
         text: 'text-yellow-700',
         border: 'border-yellow-600',
       };
+    case 'W':
+      return {
+        bg: 'bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400',
+        text: 'text-purple-700',
+        border: 'border-purple-800',
+      };
   }
 };
 
@@ -53,9 +59,10 @@ const BaseCardComponent: React.FC<BaseCardComponentProps> = ({
 
 interface CardComponentProps extends React.PropsWithChildren {
   card?: Card;
+  effectiveColor?: ColorSuit | null;
 }
 
-const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
+const CardComponent: React.FC<CardComponentProps> = ({ card, effectiveColor, children }) => {
   if (!card) {
     return (
       <BaseCardComponent
@@ -74,20 +81,48 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, children }) => {
   }
 
   const { suit, name } = getCardValues(card);
-  const colors = suitToColors(suit);
+  // For wild cards on the discard pile, use the effective color if set
+  const displaySuit: CardSuit = (suit === 'W' && effectiveColor) ? effectiveColor : suit;
+  const colors = suitToColors(displaySuit);
 
   const renderCardContent = () => {
-    if (name === 'Skip') {
-      return <SkipForward className="h-8 w-8" />;
+    switch (name) {
+      case 'Skip':
+        return <SkipForward className="h-8 w-8" />;
+      case 'Reverse':
+        return <RefreshCw className="h-8 w-8" />;
+      case 'Draw2':
+        return (
+          <div className="flex flex-col items-center">
+            <Layers className="h-6 w-6" />
+            <span className="text-xs font-bold">+2</span>
+          </div>
+        );
+      case 'Draw4':
+        return (
+          <div className="flex flex-col items-center">
+            <Layers className="h-6 w-6" />
+            <span className="text-xs font-bold">+4</span>
+          </div>
+        );
+      case 'ChangeColor':
+        return <Palette className="h-8 w-8" />;
+      default:
+        return <span className="text-xl font-bold">{name}</span>;
     }
-    if (name === 'Reverse') {
-      return <RefreshCw className="h-8 w-8" />;
-    }
-    return <span className="text-xl font-bold">{name}</span>;
   };
 
   const renderCornerContent = () => {
-    return name;
+    switch (name) {
+      case 'ChangeColor':
+        return 'Wild';
+      case 'Draw2':
+        return '+2';
+      case 'Draw4':
+        return '+4';
+      default:
+        return name;
+    }
   };
 
   return (

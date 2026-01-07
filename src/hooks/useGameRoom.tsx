@@ -30,8 +30,16 @@ const reducer = (state: ClientState, action: ClientAction): ClientState => {
       return { ...state, gameState: action.payload };
     case 'hand':
       return { ...state, hand: action.payload.map(getCardWithId) };
-    case 'draw':
-      return { ...state, hand: [...state.hand, getCardWithId(action.payload)] };
+    case 'draw': {
+      // Handle both single card and array of cards
+      const newCards = Array.isArray(action.payload)
+        ? action.payload
+        : [action.payload];
+      return {
+        ...state,
+        hand: [...state.hand, ...newCards.map(getCardWithId)],
+      };
+    }
     case 'discard':
       return {
         ...state,

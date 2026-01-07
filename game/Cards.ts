@@ -2,7 +2,8 @@
 
 import { getCardValues } from '@/utils';
 
-export type CardName =
+// Colored card names (have a color suit)
+export type ColoredCardName =
   | '1'
   | '2'
   | '3'
@@ -13,11 +14,24 @@ export type CardName =
   | '8'
   | '9'
   | 'Reverse'
-  | 'Skip';
+  | 'Skip'
+  | 'Draw2';
 
-export type CardSuit = 'R' | 'B' | 'G' | 'Y';
+// Wild card names (use 'W' suit)
+export type WildCardName = 'ChangeColor' | 'Draw4';
 
-export type Card = `${CardSuit}-${CardName}`;
+export type CardName = ColoredCardName | WildCardName;
+
+// Color suits for regular cards
+export type ColorSuit = 'R' | 'B' | 'G' | 'Y';
+
+// All suits including wild
+export type CardSuit = ColorSuit | 'W';
+
+// Card types
+export type ColoredCard = `${ColorSuit}-${ColoredCardName}`;
+export type WildCard = `W-${WildCardName}`;
+export type Card = ColoredCard | WildCard;
 
 interface ICardCollection {
   getCards(): Card[];
@@ -158,8 +172,10 @@ export class CardCollection implements ICardCollection {
 
 interface DeckBuildArgs {
   duplicates?: number;
-  suits?: CardSuit[];
-  cardNames?: CardName[];
+  suits?: ColorSuit[];
+  coloredCardNames?: ColoredCardName[];
+  wildCardNames?: WildCardName[];
+  wildCardsPerType?: number;
 }
 
 export class Deck extends CardCollection implements IDeck {
@@ -170,7 +186,7 @@ export class Deck extends CardCollection implements IDeck {
   public static Build({
     duplicates = 1,
     suits = ['R', 'B', 'G', 'Y'],
-    cardNames = [
+    coloredCardNames = [
       '1',
       '2',
       '3',
@@ -182,15 +198,28 @@ export class Deck extends CardCollection implements IDeck {
       '9',
       'Reverse',
       'Skip',
+      'Draw2',
     ],
+    wildCardNames = ['ChangeColor', 'Draw4'],
+    wildCardsPerType = 4,
   }: DeckBuildArgs) {
     const cards: Card[] = [];
 
+    // Add colored cards (with duplicates)
     for (let i = 0; i < duplicates; i++) {
       suits.forEach((suit) =>
-        cardNames.forEach((cardName) => cards.push(`${suit}-${cardName}`))
+        coloredCardNames.forEach((cardName) =>
+          cards.push(`${suit}-${cardName}` as ColoredCard)
+        )
       );
     }
+
+    // Add wild cards (fixed count per type, not duplicated)
+    wildCardNames.forEach((wildName) => {
+      for (let i = 0; i < wildCardsPerType; i++) {
+        cards.push(`W-${wildName}`);
+      }
+    });
 
     return new Deck(cards);
   }

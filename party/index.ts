@@ -185,9 +185,27 @@ export default class Server implements Party.Server {
           case 'wrongTurn':
             console.log(`It is not ${name}'s turn.`);
             return;
+          case 'missingColorChoice':
+            console.log(`User ${name} played a wild card without choosing a color`);
+            sender.send(
+              JSON.stringify({
+                type: 'hand',
+                payload: this.gameState.users[userIndex].cards,
+              })
+            );
+            return;
         }
       }
     }
+
+    // Track card count before draw action to calculate drawn cards
+    const userIndexBeforeDraw = this.gameState.users.findIndex(
+      (user) => user.id === sender.id
+    );
+    const cardCountBeforeDraw =
+      userIndexBeforeDraw >= 0
+        ? this.gameState.users[userIndexBeforeDraw].cards.length
+        : 0;
 
     this.gameState = gameUpdater(action, this.gameState);
     this.room.broadcast(
@@ -203,13 +221,14 @@ export default class Server implements Party.Server {
     );
 
     if (action.type === 'draw' && userIndex >= 0) {
+      const userCards = this.gameState.users[userIndex].cards;
+      const drawnCount = userCards.length - cardCountBeforeDraw;
+      const drawnCards = userCards.slice(-drawnCount);
+
       sender.send(
         JSON.stringify({
           type: 'draw',
-          payload:
-            this.gameState.users[userIndex].cards[
-              this.gameState.users[userIndex].cards.length - 1
-            ],
+          payload: drawnCards.length === 1 ? drawnCards[0] : drawnCards,
         })
       );
     }

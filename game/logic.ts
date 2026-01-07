@@ -1,8 +1,8 @@
-import { canBeDiscarded, getCardValues } from '@/utils';
+import { canBeDiscarded, getCardValues, isDrawCard, isWildCard } from '@/utils';
 
 import { CardCollection, Deck, Hand } from './Cards';
 
-import type { Card } from './Cards';
+import type { Card, ColorSuit } from './Cards';
 
 // util for easy adding logs
 const addLog = (
@@ -39,12 +39,17 @@ const fakeHost = {
   disconnected: true,
 };
 
+type DrawPenaltyType = 'Draw2' | 'Draw4';
+
 type BaseGameState =
   | {
       turn?: User;
       phase: 'lobby';
       host: User;
       direction: Direction;
+      effectiveColor: ColorSuit | null;
+      pendingDrawCount: number;
+      pendingDrawType: DrawPenaltyType | null;
       log: {
         dt: number;
         message: string;
@@ -55,6 +60,9 @@ type BaseGameState =
       phase: 'game' | 'gameOver';
       host: User;
       direction: Direction;
+      effectiveColor: ColorSuit | null;
+      pendingDrawCount: number;
+      pendingDrawType: DrawPenaltyType | null;
       log: {
         dt: number;
         message: string;
@@ -71,7 +79,7 @@ export type ClientAction =
   | { type: 'gameState'; payload: ClientGameState }
   | { type: 'discard'; payload: string }
   | { type: 'hand'; payload: Card[] }
-  | { type: 'draw'; payload: Card };
+  | { type: 'draw'; payload: Card | Card[] };
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
@@ -91,7 +99,7 @@ export type DefaultAction =
 type GameAction =
   | { type: 'startGame' }
   | { type: 'draw' }
-  | { type: 'discard'; card: Card }
+  | { type: 'discard'; card: Card; chosenColor?: ColorSuit }
   | { type: 'becomeSpectator' }
   | { type: 'becomePlayer' }
   | { type: 'kickPlayer'; targetUserId: string };
@@ -114,7 +122,8 @@ export type GameErrorState =
       reason: 'badDiscard';
       card: Card;
     }
-  | { reason: 'wrongTurn' };
+  | { reason: 'wrongTurn' }
+  | { reason: 'missingColorChoice' };
 
 export type ClientGameState = BaseGameState & {
   users: UserWithCardCount[];
@@ -128,12 +137,24 @@ export const initialGame = (): ServerGameState => {
   const discardPile = new CardCollection([]);
 
   deck.shuffle();
-  discardPile.addCards([deck.takeCard()]);
+
+  // Ensure first card is not a wild or draw card
+  let firstCard = deck.takeCard();
+  while (isWildCard(firstCard) || isDrawCard(firstCard)) {
+    deck.addCards([firstCard]);
+    deck.shuffle();
+    firstCard = deck.takeCard();
+  }
+
+  discardPile.addCards([firstCard]);
   return {
     turn: undefined,
     host: fakeHost,
     phase: 'lobby',
     direction: 'clockwise',
+    effectiveColor: null,
+    pendingDrawCount: 0,
+    pendingDrawType: null,
     users: [],
     disconnectedUsers: [],
     spectators: [],
@@ -159,8 +180,20 @@ export const validateServerAction = (
   if (action.type === 'discard') {
     const lastDiscarded = state.discardPile[0];
 
-    if (!canBeDiscarded(lastDiscarded, action.card))
+    if (
+      !canBeDiscarded(
+        lastDiscarded,
+        action.card,
+        state.effectiveColor,
+        state.pendingDrawType
+      )
+    )
       return { reason: 'badDiscard', card: action.card };
+
+    // Wild cards must have a chosen color
+    if (isWildCard(action.card) && !action.chosenColor) {
+      return { reason: 'missingColorChoice' };
+    }
   }
 
   return null;
@@ -300,30 +333,50 @@ const handleDrew = (
   deck: Deck,
   state: ServerGameState,
   action: Extract<ServerAction, { type: 'draw' }>
-) => {
+): ServerGameState => {
   let discardPile = state.discardPile;
   let log = state.log;
 
-  if (deck.isEmpty()) {
-    console.log(state);
-    const [topCard, ...newDeck] = state.discardPile;
-    discardPile = [topCard];
-    console.log(newDeck);
-    deck.addCards(newDeck);
-    deck.shuffle();
-    log = addLog(`Shuffled discard pile into deck!`, state.log);
+  // Determine how many cards to draw
+  const drawCount = state.pendingDrawCount > 0 ? state.pendingDrawCount : 1;
+
+  const reshuffleIfNeeded = () => {
+    if (deck.isEmpty() && discardPile.length > 1) {
+      const [topCard, ...newDeck] = discardPile;
+      discardPile = [topCard];
+      deck.addCards(newDeck);
+      deck.shuffle();
+      log = addLog('Shuffled discard pile into deck!', log);
+    }
+  };
+
+  const drawnCards: Card[] = [];
+  for (let i = 0; i < drawCount; i++) {
+    reshuffleIfNeeded();
+    if (!deck.isEmpty()) {
+      drawnCards.push(deck.drawCard());
+    }
   }
-  const drawnCard = deck.drawCard();
+
+  const users = state.users.map((user) =>
+    user.id !== action.user.id
+      ? user
+      : { ...user, cards: [...user.cards, ...drawnCards] }
+  );
+
+  // Clear pending draw after drawing
+  const hadPenalty = state.pendingDrawCount > 0;
+
   return {
     ...state,
     deck: deck.getCards(),
     discardPile,
-    users: state.users.map((user) =>
-      user.id !== action.user.id
-        ? user
-        : { ...user, cards: [...user.cards, drawnCard] }
-    ),
-    log: log,
+    users,
+    pendingDrawCount: 0,
+    pendingDrawType: null,
+    log: hadPenalty
+      ? addLog(`${action.user.name} drew ${drawCount} cards!`, log)
+      : log,
   };
 };
 
@@ -336,7 +389,7 @@ const handleDiscarded = (
   }
 
   const discardPile = new CardCollection(state.discardPile);
-  const { name: discardName } = getCardValues(action.card);
+  const { suit: cardSuit, name: discardName } = getCardValues(action.card);
   let hasWon = false;
   const users = state.users.map((user) => {
     if (user.id === action.user.id) {
@@ -358,16 +411,47 @@ const handleDiscarded = (
     return {
       ...state,
       users: users,
+      discardPile: discardPile.getCards(),
       phase: 'gameOver',
+      effectiveColor: null,
+      pendingDrawCount: 0,
+      pendingDrawType: null,
     };
   }
 
+  // Handle direction changes
   const direction =
     discardName === 'Reverse'
       ? getOtherDirection(state.direction)
       : state.direction;
 
+  // Handle effective color
+  let effectiveColor: ColorSuit | null = null;
+  if (cardSuit === 'W' && action.chosenColor) {
+    // Wild card: use chosen color
+    effectiveColor = action.chosenColor;
+  } else if (cardSuit !== 'W') {
+    // Colored card: clear effective color (use card's own color)
+    effectiveColor = null;
+  }
+
+  // Handle pending draw count
+  let pendingDrawCount = state.pendingDrawCount;
+  let pendingDrawType = state.pendingDrawType;
+
+  if (discardName === 'Draw2') {
+    pendingDrawCount += 2;
+    pendingDrawType = 'Draw2';
+  } else if (discardName === 'Draw4') {
+    pendingDrawCount += 4;
+    pendingDrawType = 'Draw4';
+  }
+
+  // Calculate next turn
   const nextTurn = getNextTurn(action.user, users, direction);
+
+  // Only Skip cards skip the next player
+  // Draw2 and Draw4 do NOT skip - the next player needs their turn to draw or stack
   const turn =
     discardName === 'Skip' ? getNextTurn(nextTurn, users, direction) : nextTurn;
 
@@ -377,6 +461,9 @@ const handleDiscarded = (
     discardPile: discardPile.getCards(),
     users,
     turn,
+    effectiveColor,
+    pendingDrawCount,
+    pendingDrawType,
   };
 };
 
