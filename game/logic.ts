@@ -108,7 +108,7 @@ type GameAction =
 
 export type ServerGameState = BaseGameState & {
   users: UserWithCards[];
-  disconnectedUsers: UserWithCards[];
+  disconnectedUsers: string[];
   spectators: User[];
   deck: Card[];
   discardPile: Card[];
@@ -611,7 +611,7 @@ const handleUserDisconnected = (
   return {
     ...state,
     users: updatedUsers,
-    disconnectedUsers: [...state.disconnectedUsers, user],
+    disconnectedUsers: [...state.disconnectedUsers, user.id],
     host: newHost,
     log: addLog(`${action.user.name} disconnected`, state.log),
   };
@@ -622,7 +622,7 @@ const handleUserReconnected = (
   action: Extract<ServerAction, { type: 'UserReconnected' }>
 ): ServerGameState => {
   const disconnectedUser = state.disconnectedUsers.find(
-    (u) => u.id === action.user.id
+    (userId) => userId === action.user.id
   );
   if (!disconnectedUser) return state;
 
@@ -639,7 +639,7 @@ const handleUserReconnected = (
     ...state,
     users: updatedUsers,
     disconnectedUsers: state.disconnectedUsers.filter(
-      (u) => u.id !== action.user.id
+      (userId) => userId !== action.user.id
     ),
     log: addLog(`${action.user.name} reconnected 🔄`, state.log),
   };
@@ -656,9 +656,7 @@ const handleKickPlayer = (
   if (action.user.id !== state.host.id) return state;
 
   const targetId = action.targetUserId;
-  const disconnectedUser = state.disconnectedUsers.find(
-    (u) => u.id === targetId
-  );
+  const disconnectedUser = state.users.find((user) => user.id === targetId);
 
   if (!disconnectedUser) return state;
 
@@ -688,7 +686,9 @@ const handleKickPlayer = (
   const updates: ServerGameState = {
     ...state,
     users: remainingUsers,
-    disconnectedUsers: state.disconnectedUsers.filter((u) => u.id !== targetId),
+    disconnectedUsers: state.disconnectedUsers.filter(
+      (userId) => userId !== targetId
+    ),
     deck: deck.getCards(),
     log: addLog(`${disconnectedUser.name} was kicked`, state.log),
   };

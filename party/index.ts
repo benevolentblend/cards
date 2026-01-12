@@ -42,7 +42,7 @@ export default class Server implements Party.Server {
 
     // Check if this user is reconnecting (was disconnected during a game)
     const isReconnecting = this.gameState.disconnectedUsers.some(
-      (u) => u.id === connection.id
+      (userId) => userId === connection.id
     );
 
     if (isReconnecting) {
@@ -186,7 +186,9 @@ export default class Server implements Party.Server {
             console.log(`It is not ${name}'s turn.`);
             return;
           case 'missingColorChoice':
-            console.log(`User ${name} played a wild card without choosing a color`);
+            console.log(
+              `User ${name} played a wild card without choosing a color`
+            );
             sender.send(
               JSON.stringify({
                 type: 'hand',
