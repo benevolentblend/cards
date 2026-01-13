@@ -20,10 +20,9 @@ export const isWildCard = (card: Card): boolean => {
   return suit === 'W';
 };
 
-export const isDrawCard = (card: Card): 'Draw2' | 'Draw4' | null => {
+export const isDrawCard = (card: Card): boolean => {
   const { name } = getCardValues(card);
-  if (name === 'Draw2' || name === 'Draw4') return name;
-  return null;
+  return name === 'Draw2' || name === 'Draw4';
 };
 
 type DrawPenaltyType = 'Draw2' | 'Draw4';

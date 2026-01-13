@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { canBeDiscarded, isWildCard } from '@/utils';
 
+import CallOutButton from './CallOutButton';
 import CardComponent from './Card';
 import ColorPicker from './ColorPicker';
 import GameLobby from './GameLobby';
 import GameOver from './GameOver';
 import Logs from './Logs';
+import OneMoreCardButton from './OneMoreCardButton';
 import Opponent from './Opponent';
 import PendingDrawIndicator from './PendingDrawIndicator';
 
@@ -55,6 +57,23 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
   const effectiveColor = clientState.gameState.effectiveColor;
   const pendingDrawCount = clientState.gameState.pendingDrawCount;
   const pendingDrawType = clientState.gameState.pendingDrawType;
+  const oneMoreCard = clientState.gameState.oneMoreCard;
+
+  // One more card logic
+  const myCardCount = clientState.hand.length;
+  const canDeclareOneMoreCard = isUsersTurn && myCardCount === 2;
+  const hasDeclared = oneMoreCard?.declaredBy === id;
+  const declaredByUser = oneMoreCard?.declaredBy
+    ? clientState.gameState.users.find((u) => u.id === oneMoreCard.declaredBy)
+    : null;
+
+  // Call out logic
+  const vulnerablePlayerId = oneMoreCard?.vulnerablePlayer;
+  const vulnerableUser = vulnerablePlayerId
+    ? clientState.gameState.users.find((u) => u.id === vulnerablePlayerId)
+    : null;
+  const canCallOut =
+    isPlayer && vulnerablePlayerId && vulnerablePlayerId !== id;
 
   const drawCard = () => {
     serverDispatch({ type: 'draw' });
@@ -80,6 +99,14 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       clientDispatch({ type: 'discard', payload: pendingWildCard.id });
       setPendingWildCard(null);
     }
+  };
+
+  const declareOneMoreCard = () => {
+    serverDispatch({ type: 'declareOneMoreCard' });
+  };
+
+  const callOutPlayer = (targetUserId: string) => {
+    serverDispatch({ type: 'callOut', targetUserId });
   };
 
   if (clientState.gameState.phase === 'lobby') {
@@ -159,6 +186,32 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
       {isUsersTurn && (
         <div className="box-border rounded-xl border border-amber-300 bg-gradient-to-r from-amber-100 to-orange-100 p-3 text-center">
           <span className="font-semibold text-amber-800">🎯 Your turn!</span>
+        </div>
+      )}
+
+      {canDeclareOneMoreCard && (
+        <div className="flex justify-center">
+          <OneMoreCardButton
+            hasDeclared={hasDeclared}
+            onDeclare={declareOneMoreCard}
+          />
+        </div>
+      )}
+
+      {declaredByUser && (
+        <div className="rounded-xl bg-gradient-to-r from-yellow-100 to-orange-100 p-3 text-center">
+          <span className="font-semibold text-orange-800">
+            {declaredByUser.name} declared &quot;One more Card!&quot;
+          </span>
+        </div>
+      )}
+
+      {canCallOut && vulnerableUser && (
+        <div className="flex justify-center">
+          <CallOutButton
+            vulnerableUserName={vulnerableUser.name}
+            onCallOut={() => callOutPlayer(vulnerablePlayerId)}
+          />
         </div>
       )}
 

@@ -41,6 +41,11 @@ const fakeHost = {
 
 type DrawPenaltyType = 'Draw2' | 'Draw4';
 
+interface OneMoreCard {
+  declaredBy: string;
+  vulnerablePlayer: string;
+}
+
 type BaseGameState =
   | {
       turn?: User;
@@ -50,6 +55,7 @@ type BaseGameState =
       effectiveColor: ColorSuit | null;
       pendingDrawCount: number;
       pendingDrawType: DrawPenaltyType | null;
+      oneMoreCard: OneMoreCard | null;
       log: {
         dt: number;
         message: string;
@@ -63,6 +69,7 @@ type BaseGameState =
       effectiveColor: ColorSuit | null;
       pendingDrawCount: number;
       pendingDrawType: DrawPenaltyType | null;
+      oneMoreCard: OneMoreCard | null;
       log: {
         dt: number;
         message: string;
@@ -83,7 +90,8 @@ export type ClientAction =
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
-const HAND_SIZE = 7;
+const HAND_SIZE = 2;
+const CALL_OUT_PENALTY = 3;
 
 type WithUser<T> = T & { user: User };
 
@@ -102,7 +110,9 @@ type GameAction =
   | { type: 'discard'; card: Card; chosenColor?: ColorSuit }
   | { type: 'becomeSpectator' }
   | { type: 'becomePlayer' }
-  | { type: 'kickPlayer'; targetUserId: string };
+  | { type: 'kickPlayer'; targetUserId: string }
+  | { type: 'declareOneMoreCard' }
+  | { type: 'callOut'; targetUserId: string };
 
 // This interface holds all the information about your game
 
@@ -155,6 +165,7 @@ export const initialGame = (): ServerGameState => {
     effectiveColor: null,
     pendingDrawCount: 0,
     pendingDrawType: null,
+    oneMoreCard: null,
     users: [],
     disconnectedUsers: [],
     spectators: [],
@@ -326,6 +337,7 @@ const handleStartGame = (
     turn: getNextTurn(action.user, state.users, state.direction),
     users,
     phase: 'game',
+    oneMoreCard: null,
   };
 };
 
@@ -367,6 +379,10 @@ const handleDrew = (
   // Clear pending draw after drawing
   const hadPenalty = state.pendingDrawCount > 0;
 
+  // Clear declaration on draw (they didn't play their card)
+  // Also clear vulnerability since this player took their turn
+  const oneMoreCard = null;
+
   return {
     ...state,
     deck: deck.getCards(),
@@ -374,9 +390,90 @@ const handleDrew = (
     users,
     pendingDrawCount: 0,
     pendingDrawType: null,
+    oneMoreCard,
     log: hadPenalty
       ? addLog(`${action.user.name} drew ${drawCount} cards!`, log)
       : log,
+  };
+};
+
+const handleDeclareOneMoreCard = (
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: 'declareOneMoreCard' }>
+): ServerGameState => {
+  if (state.phase !== 'game') return state;
+
+  // Only the current turn player can declare
+  if (action.user.id !== state.turn.id) return state;
+
+  // Player must have exactly 2 cards to declare
+  const user = state.users.find((u) => u.id === action.user.id);
+  if (!user || user.cards.length !== 2) return state;
+
+  return {
+    ...state,
+    oneMoreCard: {
+      declaredBy: action.user.id,
+      vulnerablePlayer: '',
+    },
+    log: addLog(`${action.user.name} declared "One more Card!"`, state.log),
+  };
+};
+
+const handleCallOut = (
+  deck: Deck,
+  state: ServerGameState,
+  action: Extract<ServerAction, { type: 'callOut' }>
+): ServerGameState => {
+  if (state.phase !== 'game') return state;
+
+  const targetId = action.targetUserId;
+
+  // Verify target is actually vulnerable
+  if (!state.oneMoreCard || state.oneMoreCard.vulnerablePlayer !== targetId)
+    return state;
+
+  // Cannot call out yourself
+  if (action.user.id === targetId) return state;
+
+  // Draw penalty cards
+  let discardPile = state.discardPile;
+
+  const reshuffleIfNeeded = () => {
+    if (deck.isEmpty() && discardPile.length > 1) {
+      const [topCard, ...newDeck] = discardPile;
+      discardPile = [topCard];
+      deck.addCards(newDeck);
+      deck.shuffle();
+    }
+  };
+
+  const penaltyCards: Card[] = [];
+  for (let i = 0; i < CALL_OUT_PENALTY; i++) {
+    reshuffleIfNeeded();
+    if (!deck.isEmpty()) {
+      penaltyCards.push(deck.drawCard());
+    }
+  }
+
+  const users = state.users.map((user) =>
+    user.id !== targetId
+      ? user
+      : { ...user, cards: [...user.cards, ...penaltyCards] }
+  );
+
+  const targetUser = state.users.find((u) => u.id === targetId);
+
+  return {
+    ...state,
+    deck: deck.getCards(),
+    discardPile,
+    users,
+    oneMoreCard: null,
+    log: addLog(
+      `${action.user.name} called out ${targetUser?.name}! Drew ${penaltyCards.length} cards as penalty.`,
+      state.log
+    ),
   };
 };
 
@@ -391,6 +488,7 @@ const handleDiscarded = (
   const discardPile = new CardCollection(state.discardPile);
   const { suit: cardSuit, name: discardName } = getCardValues(action.card);
   let hasWon = false;
+  let wentToOneCard = false;
   const users = state.users.map((user) => {
     if (user.id === action.user.id) {
       const userHand = new Hand(user.cards);
@@ -400,6 +498,7 @@ const handleDiscarded = (
         discardPile.addCards([action.card]);
 
         hasWon = userHand.isEmpty();
+        wentToOneCard = userHand.getCount() === 1;
       }
       return { ...user, cards: [...userHand.getCards()] };
     }
@@ -416,6 +515,7 @@ const handleDiscarded = (
       effectiveColor: null,
       pendingDrawCount: 0,
       pendingDrawType: null,
+      oneMoreCard: null,
     };
   }
 
@@ -455,6 +555,15 @@ const handleDiscarded = (
   const turn =
     discardName === 'Skip' ? getNextTurn(nextTurn, users, direction) : nextTurn;
 
+  // Check if player went to 1 card without declaring
+  const didDeclare = state.oneMoreCard?.declaredBy === action.user.id;
+  const becameVulnerable = wentToOneCard && !didDeclare;
+
+  // Only set oneMoreCard if player became vulnerable, otherwise null
+  const oneMoreCard: OneMoreCard | null = becameVulnerable
+    ? { declaredBy: '', vulnerablePlayer: action.user.id }
+    : null;
+
   return {
     ...state,
     direction,
@@ -464,6 +573,7 @@ const handleDiscarded = (
     effectiveColor,
     pendingDrawCount,
     pendingDrawType,
+    oneMoreCard,
   };
 };
 
@@ -543,6 +653,7 @@ const handleBecomeSpectator = (
       ...baseState,
       phase: 'gameOver',
       turn: remainingUsers[0],
+      oneMoreCard: null,
     };
   }
 
@@ -670,6 +781,7 @@ const handleKickPlayer = (
       ...state,
       phase: 'gameOver',
       turn: remainingUsers[0],
+      oneMoreCard: null,
     };
   }
 
@@ -731,6 +843,10 @@ export const gameUpdater = (
       return handleBecomePlayer(state, action);
     case 'kickPlayer':
       return handleKickPlayer(deck, state, action);
+    case 'declareOneMoreCard':
+      return handleDeclareOneMoreCard(state, action);
+    case 'callOut':
+      return handleCallOut(deck, state, action);
   }
 };
 

@@ -137,8 +137,16 @@ export default class Server implements Party.Server {
     const isSpectatorAction = action.type === 'becomePlayer';
     const isPlayerToSpectatorAction = action.type === 'becomeSpectator';
     const isHostAction = action.type === 'kickPlayer';
+    const isCallOutAction = action.type === 'callOut';
 
-    if (isSpectatorAction) {
+    if (isCallOutAction) {
+      // Any player can call out (not just current turn)
+      const isPlayer = this.gameState.users.some((u) => u.id === sender.id);
+      if (!isPlayer) {
+        console.log(`${name} is not a player, cannot call out`);
+        return;
+      }
+    } else if (isSpectatorAction) {
       // Verify sender is actually a spectator
       const isSpectator = this.gameState.spectators.some(
         (s) => s.id === sender.id
@@ -254,6 +262,20 @@ export default class Server implements Party.Server {
           payload: this.gameState.users[userIndex].cards,
         })
       );
+    }
+
+    // Send updated hand to called-out player
+    if (action.type === 'callOut') {
+      const targetId = action.targetUserId;
+      const targetUser = this.gameState.users.find((u) => u.id === targetId);
+      if (targetUser) {
+        this.room.getConnection(targetId)?.send(
+          JSON.stringify({
+            type: 'hand',
+            payload: targetUser.cards,
+          })
+        );
+      }
     }
   }
   async onRequest(request: Party.Request) {
