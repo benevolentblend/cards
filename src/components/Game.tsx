@@ -198,7 +198,15 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
         </div>
       )}
 
-      {declaredByUser && (
+      {!!clientState.gameState.turn && !isUsersTurn && (
+        <div className="box-border rounded-xl bg-stone-100 p-3 text-center">
+          <span className="text-stone-600">
+            Waiting for {clientState.gameState.turn.name}...
+          </span>
+        </div>
+      )}
+
+      {declaredByUser && !hasDeclared && (
         <div className="rounded-xl bg-gradient-to-r from-yellow-100 to-orange-100 p-3 text-center">
           <span className="font-semibold text-orange-800">
             {declaredByUser.name} declared &quot;One more Card!&quot;
@@ -212,14 +220,6 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
             vulnerableUserName={vulnerableUser.name}
             onCallOut={() => callOutPlayer(vulnerablePlayerId)}
           />
-        </div>
-      )}
-
-      {!!clientState.gameState.turn && !isUsersTurn && (
-        <div className="box-border rounded-xl bg-stone-100 p-3 text-center">
-          <span className="text-stone-600">
-            Waiting for {clientState.gameState.turn.name}...
-          </span>
         </div>
       )}
 

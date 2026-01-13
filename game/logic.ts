@@ -90,7 +90,7 @@ export type ClientAction =
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
-const HAND_SIZE = 7;
+const HAND_SIZE = 2;
 const CALL_OUT_PENALTY = 3;
 
 type WithUser<T> = T & { user: User };
@@ -244,7 +244,7 @@ const handleUserEntered = (
     ...state,
     host,
     log: addLog(
-      `${action.user.name} (${action.user.id}) joined 🎉, ${users.length} user(s) in room`,
+      `${action.user.name} joined 🎉, ${users.length} user(s) in room`,
       state.log
     ),
   };

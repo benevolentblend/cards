@@ -46,7 +46,9 @@ const Opponent: FC<OpponentProps> = ({ user, isTheirTurn, isHost, onKick }) => {
         {user.name}
       </span>
       <div className="mt-1 flex items-center gap-1">
-        <span className="text-xs text-stone-500">{user.cardCount} cards</span>
+        <span className="text-xs text-stone-500">
+          {user.cardCount} card{user.cardCount === 1 ? '!' : 's'}
+        </span>
       </div>
       {user.disconnected && (
         <div className="mt-1 flex flex-col items-center gap-1">
