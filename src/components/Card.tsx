@@ -62,7 +62,11 @@ interface CardComponentProps extends React.PropsWithChildren {
   effectiveColor?: ColorSuit | null;
 }
 
-const CardComponent: React.FC<CardComponentProps> = ({ card, effectiveColor, children }) => {
+const CardComponent: React.FC<CardComponentProps> = ({
+  card,
+  effectiveColor,
+  children,
+}) => {
   if (!card) {
     return (
       <BaseCardComponent
@@ -82,7 +86,8 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, effectiveColor, chi
 
   const { suit, name } = getCardValues(card);
   // For wild cards on the discard pile, use the effective color if set
-  const displaySuit: CardSuit = (suit === 'W' && effectiveColor) ? effectiveColor : suit;
+  const displaySuit: CardSuit =
+    suit === 'W' && effectiveColor ? effectiveColor : suit;
   const colors = suitToColors(displaySuit);
 
   const renderCardContent = () => {
@@ -127,18 +132,22 @@ const CardComponent: React.FC<CardComponentProps> = ({ card, effectiveColor, chi
 
   return (
     <BaseCardComponent colorClasses={`${colors.bg} ${colors.border}`}>
-      <div className="absolute top-2 left-2 flex items-center text-sm font-bold text-white drop-shadow">
+      <div className="absolute top-2 left-2 z-10 flex items-center text-sm font-bold text-white drop-shadow">
         {renderCornerContent()}
       </div>
       <div
-        className={`flex h-16 w-16 items-center justify-center rounded-full bg-white text-center shadow-inner ${colors.text}`}
+        className={`z-10 flex h-16 w-16 items-center justify-center rounded-full bg-white text-center shadow-inner ${colors.text}`}
       >
         {renderCardContent()}
       </div>
-      <div className="absolute right-2 bottom-2 flex rotate-180 items-center text-sm font-bold text-white drop-shadow">
+      <div className="absolute right-2 bottom-2 z-10 flex rotate-180 items-center text-sm font-bold text-white drop-shadow">
         {renderCornerContent()}
       </div>
-      {children}
+      {children && (
+        <div className="absolute inset-x-0 top-1/2 bottom-0 z-20 flex items-center justify-center">
+          {children}
+        </div>
+      )}
     </BaseCardComponent>
   );
 };

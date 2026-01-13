@@ -242,7 +242,7 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
                     <CardComponent card={card}>
                       {isPlayable && (
                         <button
-                          className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 px-3 py-2 text-xs font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+                          className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-2 text-xs font-semibold text-white shadow-md transition-all hover:scale-105 hover:shadow-lg active:scale-95"
                           onClick={() => discardCard({ card, id: cardId })}
                         >
                           Play
