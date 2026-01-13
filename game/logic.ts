@@ -56,6 +56,7 @@ type BaseGameState =
       pendingDrawCount: number;
       pendingDrawType: DrawPenaltyType | null;
       oneMoreCard: OneMoreCard | null;
+      wins: Record<string, number>;
       log: {
         dt: number;
         message: string;
@@ -70,6 +71,7 @@ type BaseGameState =
       pendingDrawCount: number;
       pendingDrawType: DrawPenaltyType | null;
       oneMoreCard: OneMoreCard | null;
+      wins: Record<string, number>;
       log: {
         dt: number;
         message: string;
@@ -90,7 +92,7 @@ export type ClientAction =
 
 // The maximum log size, change as needed
 const MAX_LOG_SIZE = 4;
-const HAND_SIZE = 2;
+const HAND_SIZE = 7;
 const CALL_OUT_PENALTY = 3;
 
 type WithUser<T> = T & { user: User };
@@ -166,6 +168,7 @@ export const initialGame = (): ServerGameState => {
     pendingDrawCount: 0,
     pendingDrawType: null,
     oneMoreCard: null,
+    wins: {},
     users: [],
     disconnectedUsers: [],
     spectators: [],
@@ -516,6 +519,10 @@ const handleDiscarded = (
       pendingDrawCount: 0,
       pendingDrawType: null,
       oneMoreCard: null,
+      wins: {
+        ...state.wins,
+        [action.user.id]: (state.wins[action.user.id] ?? 0) + 1,
+      },
     };
   }
 
@@ -649,11 +656,16 @@ const handleBecomeSpectator = (
 
   // Only 1 player left during game - they win
   if (isOnePlayerLeft) {
+    const winner = remainingUsers[0];
     return {
       ...baseState,
       phase: 'gameOver',
-      turn: remainingUsers[0],
+      turn: winner,
       oneMoreCard: null,
+      wins: {
+        ...state.wins,
+        [winner.id]: (state.wins[winner.id] ?? 0) + 1,
+      },
     };
   }
 
@@ -777,11 +789,16 @@ const handleKickPlayer = (
   const isOnePlayerLeft = remainingUsers.length === 1;
 
   if (isOnePlayerLeft) {
+    const winner = remainingUsers[0];
     return {
       ...state,
       phase: 'gameOver',
-      turn: remainingUsers[0],
+      turn: winner,
       oneMoreCard: null,
+      wins: {
+        ...state.wins,
+        [winner.id]: (state.wins[winner.id] ?? 0) + 1,
+      },
     };
   }
 

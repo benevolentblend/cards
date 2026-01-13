@@ -17,6 +17,8 @@ interface GameOverProps {
   isSpectator: boolean;
   winner: User;
   username: string;
+  visibleUserId: string;
+  wins: Record<string, number>;
   setUsername: (username: string) => void;
   serverDispatch: (action: Action) => void;
   log: LogEntry[];
@@ -30,6 +32,8 @@ const GameOver: FC<GameOverProps> = ({
   isSpectator,
   winner,
   username,
+  visibleUserId,
+  wins,
   setUsername,
   log,
 }) => {
@@ -39,6 +43,18 @@ const GameOver: FC<GameOverProps> = ({
 
   const initial = winner.name.charAt(0).toUpperCase() || '?';
   const canStartGame = otherUsers.length >= 1;
+
+  // Build scoreboard: combine current user with other users, sorted by wins
+  const allPlayers = isSpectator
+    ? otherUsers
+    : [{ id: visibleUserId, name: username || 'You' }, ...otherUsers];
+
+  const scoreboard = allPlayers
+    .map((user) => ({
+      ...user,
+      wins: wins[user.id] ?? 0,
+    }))
+    .sort((a, b) => b.wins - a.wins);
 
   return (
     <div className="space-y-6 py-4 text-center">
@@ -68,6 +84,34 @@ const GameOver: FC<GameOverProps> = ({
           🎊
         </span>
       </div>
+
+      <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4">
+        <h3 className="mb-3 font-semibold text-stone-700">Scoreboard</h3>
+        <div className="space-y-2">
+          {scoreboard.map((player, index) => {
+            const isWinner = player.id === winner.id;
+            return (
+              <div
+                key={player.id}
+                className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                  isWinner
+                    ? 'bg-amber-200 font-semibold text-amber-900'
+                    : 'bg-white/50 text-stone-600'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {index === 0 && <span>👑</span>}
+                  <span>{player.name}</span>
+                </div>
+                <span>
+                  {player.wins} win{player.wins !== 1 ? 's' : ''}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <PlayerList {...{ isHost, isSpectator, hostId, otherUsers, username }} />
 
       <div className="border-t border-stone-200 pt-4">

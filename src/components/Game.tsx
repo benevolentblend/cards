@@ -139,6 +139,8 @@ const Game: FC<GameProps> = ({ username, setUsername, id, roomId }) => {
           isSpectator,
           winner,
           username,
+          visibleUserId: id,
+          wins: clientState.gameState.wins,
           setUsername,
           log: clientState.gameState.log,
         }}
