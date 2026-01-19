@@ -229,6 +229,46 @@ const getNextTurn = (
 const getOtherDirection = (direction: Direction): Direction =>
   direction === 'clockwise' ? 'counterclockwise' : 'clockwise';
 
+// Reshuffles discard pile into deck when deck is empty
+const reshuffleDiscardIntoDeck = (
+  deck: Deck,
+  discardPile: Card[]
+): { discardPile: Card[]; reshuffled: boolean } => {
+  if (deck.isEmpty() && discardPile.length > 1) {
+    const [topCard, ...rest] = discardPile;
+    deck.addCards(rest);
+    deck.shuffle();
+    return { discardPile: [topCard], reshuffled: true };
+  }
+  return { discardPile, reshuffled: false };
+};
+
+// Determines new host when a player leaves
+const getNewHost = (
+  currentHost: User,
+  leavingUserId: string,
+  remainingUsers: UserWithCards[]
+): User => {
+  if (remainingUsers.length === 0) return fakeHost;
+  if (currentHost.id === leavingUserId) return remainingUsers[0];
+  return currentHost;
+};
+
+// Creates game over state when last player wins by default
+const createLastPlayerWinsState = (
+  state: ServerGameState,
+  winner: UserWithCards
+): ServerGameState => ({
+  ...state,
+  phase: 'gameOver',
+  turn: winner,
+  oneMoreCard: null,
+  wins: {
+    ...state.wins,
+    [winner.id]: (state.wins[winner.id] ?? 0) + 1,
+  },
+});
+
 const handleUserEntered = (
   deck: Deck,
   state: ServerGameState,
@@ -267,18 +307,11 @@ const handleUserExited = (
     (user) => user.id !== action.user.id && !user.disconnected
   );
   const isLastPlayer = remainingUsers.length === 0;
-
-  // Reassign host if the leaving player was the host
-  const needsNewHost = state.host.id === action.user.id;
-  const newHost = isLastPlayer
-    ? fakeHost
-    : needsNewHost
-      ? remainingUsers[0]
-      : state.host;
+  const newHost = getNewHost(state.host, action.user.id, remainingUsers);
 
   let log = addLog(`user ${action.user.name} left 😢`, state.log);
 
-  if (needsNewHost) {
+  if (newHost.id !== state.host.id) {
     log = addLog(`user ${newHost.name} promoted to host`, state.log);
   }
 
@@ -355,19 +388,13 @@ const handleDrew = (
   // Determine how many cards to draw
   const drawCount = state.pendingDrawCount > 0 ? state.pendingDrawCount : 1;
 
-  const reshuffleIfNeeded = () => {
-    if (deck.isEmpty() && discardPile.length > 1) {
-      const [topCard, ...newDeck] = discardPile;
-      discardPile = [topCard];
-      deck.addCards(newDeck);
-      deck.shuffle();
-      log = addLog('Shuffled discard pile into deck!', log);
-    }
-  };
-
   const drawnCards: Card[] = [];
   for (let i = 0; i < drawCount; i++) {
-    reshuffleIfNeeded();
+    const result = reshuffleDiscardIntoDeck(deck, discardPile);
+    discardPile = result.discardPile;
+    if (result.reshuffled) {
+      log = addLog('Shuffled discard pile into deck!', log);
+    }
     if (!deck.isEmpty()) {
       drawnCards.push(deck.drawCard());
     }
@@ -442,18 +469,10 @@ const handleCallOut = (
   // Draw penalty cards
   let discardPile = state.discardPile;
 
-  const reshuffleIfNeeded = () => {
-    if (deck.isEmpty() && discardPile.length > 1) {
-      const [topCard, ...newDeck] = discardPile;
-      discardPile = [topCard];
-      deck.addCards(newDeck);
-      deck.shuffle();
-    }
-  };
-
   const penaltyCards: Card[] = [];
   for (let i = 0; i < CALL_OUT_PENALTY; i++) {
-    reshuffleIfNeeded();
+    const result = reshuffleDiscardIntoDeck(deck, discardPile);
+    discardPile = result.discardPile;
     if (!deck.isEmpty()) {
       penaltyCards.push(deck.drawCard());
     }
@@ -620,14 +639,7 @@ const handleBecomeSpectator = (
   const remainingUsers = state.users.filter((u) => u.id !== action.user.id);
   const isOnePlayerLeft = remainingUsers.length === 1;
   const isNoPlayersLeft = remainingUsers.length === 0;
-
-  // Reassign host if needed
-  const needsNewHost = state.host.id === action.user.id;
-  const newHost = isNoPlayersLeft
-    ? fakeHost
-    : needsNewHost
-      ? remainingUsers[0]
-      : state.host;
+  const newHost = getNewHost(state.host, action.user.id, remainingUsers);
 
   const baseState = {
     ...state,
@@ -656,17 +668,7 @@ const handleBecomeSpectator = (
 
   // Only 1 player left during game - they win
   if (isOnePlayerLeft) {
-    const winner = remainingUsers[0];
-    return {
-      ...baseState,
-      phase: 'gameOver',
-      turn: winner,
-      oneMoreCard: null,
-      wins: {
-        ...state.wins,
-        [winner.id]: (state.wins[winner.id] ?? 0) + 1,
-      },
-    };
+    return createLastPlayerWinsState(baseState, remainingUsers[0]);
   }
 
   // Advance turn if it was this player's turn
@@ -712,22 +714,12 @@ const handleUserDisconnected = (
   const remainingUsers = state.users.filter(
     (u) => u.id !== action.user.id && !u.disconnected
   );
-  const isNoPlayersLeft = remainingUsers.length === 0;
-  const needsNewHost = state.host.id === action.user.id;
-  const newHost = isNoPlayersLeft
-    ? fakeHost
-    : needsNewHost
-      ? remainingUsers[0]
-      : state.host;
+  const newHost = getNewHost(state.host, action.user.id, remainingUsers);
 
-  const updatedUsers = state.users.map((user) => {
-    const isDisconnectedUser = user.id === action.user.id;
-
-    return {
-      ...user,
-      disconnected: isDisconnectedUser ? true : user.disconnected,
-    };
-  });
+  const updatedUsers = state.users.map((u) => ({
+    ...u,
+    disconnected: u.id === action.user.id ? true : u.disconnected,
+  }));
 
   // Move user to disconnected list, keep their cards
   // Don't end the game - give them a chance to reconnect
@@ -779,54 +771,34 @@ const handleKickPlayer = (
   if (action.user.id !== state.host.id) return state;
 
   const targetId = action.targetUserId;
-  const disconnectedUser = state.users.find((user) => user.id === targetId);
+  const kickedUser = state.users.find((user) => user.id === targetId);
 
-  if (!disconnectedUser) return state;
+  if (!kickedUser) return state;
 
-  const remainingUsers = state.users.filter(
-    (u) => u.id !== action.targetUserId
-  );
+  const remainingUsers = state.users.filter((u) => u.id !== targetId);
   const isOnePlayerLeft = remainingUsers.length === 1;
 
   if (isOnePlayerLeft) {
-    const winner = remainingUsers[0];
-    return {
-      ...state,
-      phase: 'gameOver',
-      turn: winner,
-      oneMoreCard: null,
-      wins: {
-        ...state.wins,
-        [winner.id]: (state.wins[winner.id] ?? 0) + 1,
-      },
-    };
+    return createLastPlayerWinsState(state, remainingUsers[0]);
   }
 
   // Return kicked player's cards to deck
-  deck.addCards(disconnectedUser.cards);
+  deck.addCards(kickedUser.cards);
 
-  const wasKickedPlayersTurn =
-    isInGame && disconnectedUser.id === state.turn.id;
+  const wasKickedPlayersTurn = isInGame && kickedUser.id === state.turn.id;
 
-  const nextTurn = wasKickedPlayersTurn
-    ? getNextTurn(state.turn, remainingUsers, state.direction)
-    : state.turn;
-
-  const updates: ServerGameState = {
+  return {
     ...state,
     users: remainingUsers,
     disconnectedUsers: state.disconnectedUsers.filter(
       (userId) => userId !== targetId
     ),
     deck: deck.getCards(),
-    log: addLog(`${disconnectedUser.name} was kicked`, state.log),
+    log: addLog(`${kickedUser.name} was kicked`, state.log),
+    ...(wasKickedPlayersTurn && {
+      turn: getNextTurn(state.turn, remainingUsers, state.direction),
+    }),
   };
-
-  if (wasKickedPlayersTurn) {
-    updates['turn'] = nextTurn;
-  }
-
-  return updates;
 };
 
 export const gameUpdater = (
