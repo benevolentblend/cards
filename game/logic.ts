@@ -360,6 +360,8 @@ const handleStartGame = (
     deck.addCards(user.cards);
   });
 
+  const { discardPile } = reshuffleDiscardIntoDeck(deck, state.discardPile);
+
   deck.shuffle();
 
   const users = state.users.map((user) => ({
@@ -371,6 +373,7 @@ const handleStartGame = (
     ...state,
     deck: deck.getCards(),
     turn: getNextTurn(action.user, state.users, state.direction),
+    discardPile,
     users,
     phase: 'game',
     oneMoreCard: null,
